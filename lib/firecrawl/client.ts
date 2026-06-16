@@ -6,7 +6,8 @@ export async function crawlGrantPage(url: string): Promise<string> {
   const result = await firecrawl.scrape(url, {
     formats: ["markdown"],
     onlyMainContent: true,
-    timeout: 30000,
+    waitFor: 3000, // many foundation listings render their grants via JS
+    timeout: 45000,
   });
 
   return result.markdown ?? "";

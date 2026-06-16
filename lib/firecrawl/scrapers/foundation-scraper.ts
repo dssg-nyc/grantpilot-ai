@@ -7,15 +7,29 @@ export interface FoundationTarget {
   funder_type: "foundation" | "corporate";
 }
 
+// NOTE: Foundations rarely expose a clean grants API and pages rot often.
+// These URLs were verified (2026-06) to return readable grant/program content
+// that the AI extractor can parse. Re-verify periodically — foundation sites
+// change URLs and frequently render listings via JS.
 export const FOUNDATION_TARGETS: FoundationTarget[] = [
-  { name: "Ford Foundation", url: "https://www.fordfoundation.org/work/our-grants/", funder_type: "foundation" },
-  { name: "MacArthur Foundation", url: "https://www.macfound.org/grants/", funder_type: "foundation" },
-  { name: "Robert Wood Johnson Foundation", url: "https://www.rwjf.org/en/grants/funding-opportunities.html", funder_type: "foundation" },
-  { name: "W.K. Kellogg Foundation", url: "https://www.wkkf.org/grants", funder_type: "foundation" },
-  { name: "Annie E. Casey Foundation", url: "https://www.aecf.org/work/grant-making", funder_type: "foundation" },
-  { name: "Google.org", url: "https://www.google.org/our-work/", funder_type: "corporate" },
-  { name: "Salesforce.org", url: "https://www.salesforce.org/grants/", funder_type: "corporate" },
-  { name: "Microsoft Philanthropies", url: "https://www.microsoft.com/en-us/corporate-responsibility/philanthropies", funder_type: "corporate" },
+  // Foundations — verified (2026-06) to return extractable grant/program content.
+  { name: "Hewlett Foundation", url: "https://hewlett.org/grants/", funder_type: "foundation" },
+  { name: "Mellon Foundation", url: "https://www.mellon.org/grant-programs", funder_type: "foundation" },
+  { name: "Global Grand Challenges (Gates)", url: "https://gcgh.grandchallenges.org/challenges", funder_type: "foundation" },
+  { name: "Wellcome Trust", url: "https://wellcome.org/grant-funding/schemes", funder_type: "foundation" },
+  { name: "Kresge Foundation", url: "https://kresge.org/grants-social-investments/current-funding-opportunities/", funder_type: "foundation" },
+  { name: "Commonwealth Fund", url: "https://www.commonwealthfund.org/grants-fellowships", funder_type: "foundation" },
+  { name: "Open Philanthropy", url: "https://www.openphilanthropy.org/request-for-proposals/", funder_type: "foundation" },
+  { name: "Henry Luce Foundation", url: "https://hluce.org/programs/", funder_type: "foundation" },
+  { name: "Spencer Foundation", url: "https://www.spencer.org/grant_types", funder_type: "foundation" },
+  { name: "McKnight Foundation", url: "https://www.mcknight.org/programs/", funder_type: "foundation" },
+  { name: "Surdna Foundation", url: "https://www.surdna.org/grants/", funder_type: "foundation" },
+  { name: "Rockefeller Foundation", url: "https://www.rockefellerfoundation.org/grants/", funder_type: "foundation" },
+  // Corporate / CSR funders.
+  { name: "Mozilla Foundation", url: "https://foundation.mozilla.org/en/what-we-fund/awards/", funder_type: "corporate" },
+  { name: "AWS IMAGINE Grant", url: "https://aws.amazon.com/government-education/nonprofits/aws-imagine-grant/", funder_type: "corporate" },
+  { name: "Walmart Foundation", url: "https://walmart.org/how-we-give/", funder_type: "corporate" },
+  { name: "T-Mobile Hometown Grants", url: "https://www.t-mobile.com/coverage/hometown-grants", funder_type: "corporate" },
 ];
 
 export interface ScrapedGrant extends ExtractedGrant {

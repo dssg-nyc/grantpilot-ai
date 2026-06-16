@@ -22,7 +22,7 @@ export async function extractOpportunitiesFromMarkdown(
   try {
     const resp = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 2000,
+      max_tokens: 4000,
       messages: [{
         role: "user",
         content: `Extract all grant opportunities from this webpage content for ${funderName}. Return ONLY a raw JSON array (no markdown, no code blocks).
@@ -41,7 +41,7 @@ If no grants are found, return [].
 Return ONLY the JSON array.
 
 CONTENT:
-${markdown.substring(0, 4000)}`
+${markdown.substring(0, 14000)}`
       }]
     });
 

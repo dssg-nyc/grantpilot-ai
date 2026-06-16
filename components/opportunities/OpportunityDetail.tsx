@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react";
 import {
   X, ExternalLink, Calendar, DollarSign, Globe, Building2,
-  Tag, BookmarkPlus, ClipboardList, Sparkles, ArrowUpRight,
+  Tag, ClipboardList, Sparkles, ArrowUpRight,
 } from "lucide-react";
 import type { Opportunity } from "@/types/opportunity";
 
 interface OpportunityDetailProps {
   id: string | null;
   onClose: () => void;
-  onSave?: (id: string) => void;
-  onAddToPipeline?: (id: string) => void;
+  onAddToPipeline?: (opp: Opportunity) => void;
+  pipelineState?: "idle" | "pending" | "added";
 }
 
 function fmt(n: number) {
@@ -56,7 +56,7 @@ const FUNDER_COLORS: Record<string, string> = {
   state_government:   "bg-orange-50 text-orange-700 border-orange-200",
 };
 
-export default function OpportunityDetail({ id, onClose, onSave, onAddToPipeline }: OpportunityDetailProps) {
+export default function OpportunityDetail({ id, onClose, onAddToPipeline, pipelineState = "idle" }: OpportunityDetailProps) {
   const [opp, setOpp] = useState<Opportunity | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -226,24 +226,20 @@ export default function OpportunityDetail({ id, onClose, onSave, onAddToPipeline
                   Apply Now <ExternalLink className="h-4 w-4" />
                 </a>
               )}
-              <div className="flex gap-2">
-                {onSave && (
-                  <button
-                    onClick={() => onSave(opp.id)}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    <BookmarkPlus className="h-3.5 w-3.5" /> Save
-                  </button>
-                )}
-                {onAddToPipeline && (
-                  <button
-                    onClick={() => onAddToPipeline(opp.id)}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    <ClipboardList className="h-3.5 w-3.5" /> Pipeline
-                  </button>
-                )}
-              </div>
+              {onAddToPipeline && (
+                <button
+                  onClick={() => { if (pipelineState === "idle") onAddToPipeline(opp); }}
+                  disabled={pipelineState !== "idle"}
+                  className={`flex w-full items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition disabled:cursor-default ${
+                    pipelineState === "added"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  {pipelineState === "pending" ? "Adding…" : pipelineState === "added" ? "Added to Pipeline" : "Add to Pipeline"}
+                </button>
+              )}
               {opp.source_url && (
                 <a
                   href={opp.source_url}

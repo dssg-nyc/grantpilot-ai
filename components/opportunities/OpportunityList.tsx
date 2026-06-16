@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useOpportunities } from "@/hooks/useOpportunities";
 import { useSearch } from "@/hooks/useSearch";
+import { useAddToPipeline, usePipeline } from "@/hooks/usePipeline";
 import OpportunityCard from "@/components/opportunities/OpportunityCard";
 import OpportunityFilters, { type FilterState } from "@/components/opportunities/OpportunityFilters";
 import OpportunityDetail from "@/components/opportunities/OpportunityDetail";
@@ -41,6 +42,13 @@ export default function OpportunityList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pipelineAddedIds, setPipelineAddedIds] = useState<Set<string>>(new Set());
+  const addToPipeline = useAddToPipeline();
+  const { data: pipeline } = usePipeline();
+  const pipelineOppIds = new Set<string>([
+    ...(Array.isArray(pipeline) ? pipeline.map((p: { opportunity_id: string }) => p.opportunity_id) : []),
+    ...pipelineAddedIds,
+  ]);
 
   const { data: searchData } = useSearch(searchQuery);
   const { data: oppData, isLoading } = useOpportunities({
@@ -133,6 +141,19 @@ export default function OpportunityList() {
       <OpportunityDetail
         id={selectedId}
         onClose={() => setSelectedId(null)}
+        pipelineState={
+          selectedId && pipelineOppIds.has(selectedId)
+            ? "added"
+            : addToPipeline.isPending
+              ? "pending"
+              : "idle"
+        }
+        onAddToPipeline={(opp) =>
+          addToPipeline.mutate(
+            { opportunity_id: opp.id, title: opp.title, deadline: opp.deadline },
+            { onSuccess: () => setPipelineAddedIds((prev) => new Set(prev).add(opp.id)) },
+          )
+        }
       />
     </div>
   );

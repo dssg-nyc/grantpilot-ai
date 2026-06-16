@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useMatches } from "@/hooks/useMatches";
+import { useMatches, useUpdateMatchStatus } from "@/hooks/useMatches";
+import { useAddToPipeline, usePipeline } from "@/hooks/usePipeline";
 import {
-  ExternalLink, Bookmark, Plus, ChevronDown, ChevronUp,
+  ExternalLink, Bookmark, Plus, Check, ChevronDown, ChevronUp,
   CheckCircle2, XCircle, Lightbulb, DollarSign, Calendar,
-  Sparkles, TrendingUp, Clock,
+  Sparkles, TrendingUp, Clock, Loader2,
 } from "lucide-react";
 
 // ─── Score Ring ───────────────────────────────────────────────────────────────
@@ -86,10 +87,15 @@ interface MatchItem {
   recommended_action: string;
 }
 
-function MatchCard({ item }: { item: MatchItem }) {
+function MatchCard({ item, inPipeline }: { item: MatchItem; inPipeline: boolean }) {
   const [expanded, setExpanded] = useState(false);
+  const addToPipeline = useAddToPipeline();
+  const updateStatus = useUpdateMatchStatus();
+  const [added, setAdded] = useState(false);
   const opp = item.opportunity;
   const match = item.match;
+  const isSaved = match.status === "saved";
+  const isInPipeline = added || inPipeline;
   const score = match.match_score;
   const prob = match.success_probability;
   const reasons = match.match_reasons ?? [];
@@ -240,11 +246,48 @@ function MatchCard({ item }: { item: MatchItem }) {
           >
             Apply <ExternalLink className="h-3 w-3" />
           </a>
-          <button className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
-            <Bookmark className="h-3 w-3" /> Save
+          <button
+            onClick={() => {
+              if (updateStatus.isPending) return;
+              updateStatus.mutate({ id: match.id, status: isSaved ? "new" : "saved" });
+            }}
+            disabled={updateStatus.isPending}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+              isSaved
+                ? "border-blue-200 bg-blue-50 text-blue-700"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            {updateStatus.isPending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Bookmark className={`h-3 w-3 ${isSaved ? "fill-blue-600" : ""}`} />
+            )}
+            {isSaved ? "Saved" : "Save"}
           </button>
-          <button className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
-            <Plus className="h-3 w-3" /> Pipeline
+          <button
+            onClick={() => {
+              if (isInPipeline || addToPipeline.isPending) return;
+              addToPipeline.mutate(
+                { opportunity_id: opp.id, title: opp.title, match_id: match.id, deadline: opp.deadline },
+                { onSuccess: () => setAdded(true) },
+              );
+            }}
+            disabled={isInPipeline || addToPipeline.isPending}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:cursor-default ${
+              isInPipeline
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            {addToPipeline.isPending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : isInPipeline ? (
+              <Check className="h-3 w-3" />
+            ) : (
+              <Plus className="h-3 w-3" />
+            )}
+            {isInPipeline ? "In Pipeline" : "Pipeline"}
           </button>
         </div>
       </div>
@@ -280,8 +323,13 @@ const STATUS_TABS = [
 export default function MatchesPage() {
   const [activeTab, setActiveTab] = useState("");
   const { data, isLoading, error } = useMatches();
+  const { data: pipeline } = usePipeline();
   const matches = (data?.data ?? []) as MatchItem[];
   const stats = data?.stats;
+
+  const pipelineOppIds = new Set<string>(
+    (Array.isArray(pipeline) ? pipeline : []).map((p: { opportunity_id: string }) => p.opportunity_id),
+  );
 
   const filtered = activeTab
     ? matches.filter((m) => m.match.status === activeTab)
@@ -360,7 +408,11 @@ export default function MatchesPage() {
       {!isLoading && filtered.length > 0 && (
         <div className="space-y-4">
           {filtered.map((item) => (
-            <MatchCard key={item.match.id} item={item} />
+            <MatchCard
+              key={item.match.id}
+              item={item}
+              inPipeline={pipelineOppIds.has(item.opportunity.id)}
+            />
           ))}
         </div>
       )}

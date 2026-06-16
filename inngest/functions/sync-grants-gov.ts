@@ -1,24 +1,41 @@
 import { inngest } from "@/inngest/client";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { fetchGrantsGovOpportunities } from "@/lib/data-sources/grants-gov";
-import { embedText } from "@/lib/voyage/embeddings";
+import { fetchGrantsGovOpportunities, fetchGrantDetails } from "@/lib/data-sources/grants-gov";
+import { embedTexts } from "@/lib/voyage/embeddings";
 import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// Run async mappers with a bounded concurrency so we don't burst external APIs.
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let i = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (i < items.length) {
+        const idx = i++;
+        out[idx] = await fn(items[idx]);
+      }
+    }),
+  );
+  return out;
+}
+
+// Shape returned by the grants.gov search endpoint (list view — no description/amounts).
 interface RawGrantsGovOpp {
   id: string;
+  number?: string;
   title: string;
-  synopsis?: string;
-  description?: string;
-  agencyName?: string;
-  awardFloor?: string;
-  awardCeiling?: string;
+  agency?: string;
+  agencyCode?: string;
+  openDate?: string;
   closeDate?: string;
   oppStatus?: string;
-  additionalInformationUrl?: string;
-  eligibilities?: string[];
-  cfda?: string;
+  cfdaList?: string[];
 }
 
 function parseEligibility(raw: string[] | undefined): string[] {
@@ -84,43 +101,62 @@ export const syncGrantsGov = inngest.createFunction(
         let newCount = 0;
         let updatedCount = 0;
 
-        for (const raw of rawOpps) {
+        // 1. Enrich every opp via the details endpoint (search only returns list fields).
+        const prepared = await mapWithConcurrency(rawOpps, 8, async (raw) => {
+          const details = await fetchGrantDetails(String(raw.id));
+          const description = details.description ?? "";
+          const amountMin = details.awardFloor ? parseInt(details.awardFloor) : null;
+          const amountMax = details.awardCeiling ? parseInt(details.awardCeiling) : null;
+          return {
+            raw,
+            description,
+            agencyName: raw.agency ?? "Federal Agency",
+            elig: parseEligibility(details.eligibilities),
+            amountMin: Number.isNaN(amountMin as number) ? null : amountMin,
+            amountMax: Number.isNaN(amountMax as number) ? null : amountMax,
+          };
+        });
+
+        // 2. Embed the whole page in ONE batched Voyage request (avoids 429s).
+        const embeddings = await embedTexts(
+          prepared.map((p) =>
+            [p.raw.title, p.description, `Funder: ${p.agencyName}`, `Eligibility: ${p.elig.join(", ")}`].join("\n"),
+          ),
+        );
+
+        // 3. AI summaries with bounded concurrency (respect Anthropic limits).
+        const summaries = await mapWithConcurrency(prepared, 5, (p) =>
+          p.description ? generateAISummary(p.raw.title, p.description) : Promise.resolve(""),
+        );
+
+        // 4. Store (upsert by source + source_id).
+        for (let i = 0; i < prepared.length; i++) {
+          const p = prepared[i];
           try {
-            const description = raw.synopsis ?? raw.description ?? "";
-            const embeddingText = [
-              raw.title,
-              description,
-              `Funder: ${raw.agencyName ?? "Federal Agency"}`,
-              "Eligibility: nonprofit_501c3, educational, government",
-            ].join("\n");
-
-            const [embedding, aiSummary] = await Promise.all([
-              embedText(embeddingText),
-              description ? generateAISummary(raw.title, description) : Promise.resolve(""),
-            ]);
-
+            const aiSummary = summaries[i];
+            const embedding = embeddings[i] ?? [];
             const opp = {
-              title: raw.title,
-              description,
-              funder_name: raw.agencyName ?? "Federal Agency",
+              title: p.raw.title,
+              description: p.description,
+              funder_name: p.agencyName,
               funder_type: "federal_government",
               funding_type: "grant",
-              amount_min: raw.awardFloor ? parseInt(raw.awardFloor) : null,
-              amount_max: raw.awardCeiling ? parseInt(raw.awardCeiling) : null,
-              deadline: raw.closeDate
-                ? new Date(raw.closeDate).toISOString().split("T")[0]
+              amount_min: p.amountMin,
+              amount_max: p.amountMax,
+              deadline: p.raw.closeDate
+                ? new Date(p.raw.closeDate).toISOString().split("T")[0]
                 : null,
-              is_rolling_deadline: !raw.closeDate,
-              eligibility_types: parseEligibility(raw.eligibilities),
+              is_rolling_deadline: !p.raw.closeDate,
+              eligibility_types: p.elig,
               focus_areas: [] as string[],
               geographic_scope: "national",
               geographic_states: [] as string[],
               source: "grants_gov",
-              source_id: String(raw.id),
-              source_url: `https://www.grants.gov/search-results-detail/${raw.id}`,
-              application_url: raw.additionalInformationUrl ?? null,
+              source_id: String(p.raw.id),
+              source_url: `https://www.grants.gov/search-results-detail/${p.raw.id}`,
+              application_url: `https://www.grants.gov/search-results-detail/${p.raw.id}`,
               status:
-                raw.closeDate && new Date(raw.closeDate) < new Date()
+                p.raw.closeDate && new Date(p.raw.closeDate) < new Date()
                   ? "expired"
                   : "active",
               ai_summary: aiSummary || null,
@@ -128,13 +164,12 @@ export const syncGrantsGov = inngest.createFunction(
               ai_enriched_at: aiSummary ? new Date().toISOString() : null,
             };
 
-            // Upsert by source_id
             const { data: existing } = await supabaseAdmin
               .from("opportunities")
               .select("id")
-              .eq("source_id", String(raw.id))
+              .eq("source_id", String(p.raw.id))
               .eq("source", "grants_gov")
-              .single();
+              .maybeSingle();
 
             if (existing) {
               await supabaseAdmin
@@ -147,7 +182,7 @@ export const syncGrantsGov = inngest.createFunction(
               newCount++;
             }
           } catch (err) {
-            console.error(`Failed to process grant ${raw.id}:`, err);
+            console.error(`Failed to process grant ${p.raw.id}:`, err);
           }
         }
 
