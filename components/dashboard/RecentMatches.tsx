@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles, ExternalLink } from "lucide-react";
 import { useMatches } from "@/hooks/useMatches";
+import { useProfile } from "@/hooks/useProfile";
 
 function ScoreRing({ score }: { score: number }) {
   const r = 16;
@@ -39,6 +40,8 @@ function ScoreRing({ score }: { score: number }) {
 
 export default function RecentMatches() {
   const { data, isLoading } = useMatches();
+  const { data: profile } = useProfile();
+  const hasProfile = !!profile?.organization && (profile?.profile_completeness ?? 0) >= 30;
   const matches = (data?.data ?? []).slice(0, 5) as Array<{
     match: { match_score: number; recommended_action?: string; status: string };
     opportunity: { id: string; title: string; funder_name: string; funder_type: string; source_url?: string };
@@ -92,12 +95,16 @@ export default function RecentMatches() {
             <Sparkles className="h-5 w-5 text-slate-400" />
           </div>
           <p className="mt-3 text-sm font-medium text-slate-600">No matches yet</p>
-          <p className="mt-1 text-xs text-slate-400">Complete your profile to get AI-matched grants</p>
+          <p className="mt-1 text-xs text-slate-400">
+            {hasProfile
+              ? "We're scoring grants against your profile — check back soon."
+              : "Complete your profile to get AI-matched grants"}
+          </p>
           <Link
-            href="/onboarding"
+            href={hasProfile ? "/dashboard/opportunities" : "/onboarding"}
             className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700"
           >
-            Complete Profile
+            {hasProfile ? "Browse opportunities" : "Complete Profile"}
           </Link>
         </div>
       )}

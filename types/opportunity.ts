@@ -16,6 +16,8 @@ export interface Opportunity {
   amount_min?: number | null;
   amount_max?: number | null;
   deadline?: string | null;
+  posted_date?: string | null;
+  created_at?: string | null;
   is_rolling_deadline?: boolean;
   eligibility_types: string[];
   focus_areas: string[];

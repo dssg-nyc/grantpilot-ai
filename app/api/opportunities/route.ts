@@ -50,6 +50,12 @@ export async function GET(request: Request) {
     case "trending": query = query.order("trending_score", { ascending: false }); break;
     case "deadline": query = query.order("deadline", { ascending: true, nullsFirst: false }); break;
     case "amount_desc": query = query.order("amount_max", { ascending: false, nullsFirst: false }); break;
+    case "recent":
+      // Most recently posted by the funder; fall back to ingest time.
+      query = query
+        .order("posted_date", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+      break;
     default: query = query.order("created_at", { ascending: false });
   }
 

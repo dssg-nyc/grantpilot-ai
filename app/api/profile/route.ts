@@ -101,6 +101,37 @@ export async function POST(request: Request) {
   }
 
   const { id: _id, ...bodyWithoutId } = body as Record<string, unknown> & { id?: unknown };
+
+  // If the user already has an org, re-running onboarding should UPDATE it —
+  // not create a duplicate that orphans their existing matches and pipeline.
+  const { data: existingUser } = await supabase
+    .from("users")
+    .select("org_id")
+    .eq("id", user.id)
+    .single();
+
+  if (existingUser?.org_id) {
+    const updateData: Record<string, unknown> = {
+      ...bodyWithoutId,
+      profile_completeness: computeProfileCompleteness(body),
+      updated_at: new Date().toISOString(),
+    };
+    // Only overwrite the embedding if we recomputed one (mission provided).
+    if (profileEmbedding) updateData.profile_embedding = profileEmbedding;
+
+    const { data: org, error } = await supabase
+      .from("organizations")
+      .update(updateData)
+      .eq("id", existingUser.org_id)
+      .select()
+      .single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    await supabase.from("users").update({ onboarding_completed: true }).eq("id", user.id);
+    return NextResponse.json({ organization: org }, { status: 200 });
+  }
+
   const orgData = {
     ...bodyWithoutId,
     created_by: user.id,
@@ -149,20 +180,21 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "No organization found" }, { status: 404 });
   }
 
-  if (body.mission_statement || body.primary_focus_areas) {
-    const { data: existing } = await supabase
-      .from("organizations")
-      .select(
-        "mission_statement,primary_focus_areas,target_beneficiaries,programs,annual_budget_range,geographic_service_area",
-      )
-      .eq("id", userData.org_id)
-      .single();
+  // Merge the patch over the full existing org so completeness (and the
+  // embedding) reflect the whole profile — not just the fields being edited.
+  const { data: existing } = await supabase
+    .from("organizations")
+    .select("*")
+    .eq("id", userData.org_id)
+    .single();
 
-    const merged = { ...existing, ...body };
+  const merged = { ...existing, ...body };
+
+  if (body.mission_statement || body.primary_focus_areas) {
     body.profile_embedding = await embedText(await buildEmbeddingText(merged));
   }
 
-  body.profile_completeness = computeProfileCompleteness(body);
+  body.profile_completeness = computeProfileCompleteness(merged);
   body.updated_at = new Date().toISOString();
 
   const { data: org, error } = await supabase

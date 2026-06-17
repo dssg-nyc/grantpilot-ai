@@ -20,6 +20,17 @@ function formatAmount(min?: number | null, max?: number | null): string | null {
   return `From ${fmt(min!)}`;
 }
 
+function postedInfo(posted?: string | null) {
+  if (!posted) return null;
+  const d = new Date(posted);
+  if (isNaN(d.getTime())) return null;
+  const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
+  if (days <= 0) return { label: "New today", fresh: true };
+  if (days === 1) return { label: "Posted yesterday", fresh: true };
+  if (days <= 7) return { label: `Posted ${days}d ago`, fresh: false };
+  return { label: `Posted ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, fresh: false };
+}
+
 function deadlineInfo(deadline?: string | null, rolling?: boolean) {
   if (rolling) return { label: "Rolling", urgent: false, warning: false };
   if (!deadline) return null;
@@ -46,6 +57,7 @@ const FUNDER_META: Record<string, { label: string; icon: React.ElementType; badg
 export default function OpportunityCard({ opportunity: opp, onClick, matchScore }: OpportunityCardProps) {
   const amount = formatAmount(opp.amount_min, opp.amount_max);
   const dl = deadlineInfo(opp.deadline, opp.is_rolling_deadline);
+  const posted = postedInfo(opp.posted_date);
   const meta = FUNDER_META[opp.funder_type] ?? { label: opp.funder_type, icon: Building2, badge: "bg-slate-100 text-slate-600 border-slate-200" };
   const FunderIcon = meta.icon;
 
@@ -67,6 +79,13 @@ export default function OpportunityCard({ opportunity: opp, onClick, matchScore 
             <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${meta.badge}`}>
               {meta.label}
             </span>
+            {posted && (
+              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                posted.fresh ? "bg-green-50 text-green-700 border-green-100" : "bg-slate-50 text-slate-500 border-slate-200"
+              }`}>
+                {posted.label}
+              </span>
+            )}
             {dl && (
               <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
                 dl.urgent  ? "bg-red-50    text-red-600    border-red-100"   :

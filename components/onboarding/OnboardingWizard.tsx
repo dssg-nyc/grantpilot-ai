@@ -37,10 +37,13 @@ const INITIAL_DATA: Partial<OrgProfile> = {
   notification_frequency: "weekly",
 };
 
-export default function OnboardingWizard() {
+export default function OnboardingWizard({ initialData }: { initialData?: Partial<OrgProfile> }) {
   const router = useRouter();
+  const isEditing = !!initialData;
   const [currentStep, setCurrentStep] = useState(0);
-  const [data, setData] = useState<Partial<OrgProfile>>(INITIAL_DATA);
+  const [data, setData] = useState<Partial<OrgProfile>>(
+    initialData ? { ...INITIAL_DATA, ...initialData } : INITIAL_DATA,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -77,7 +80,7 @@ export default function OnboardingWizard() {
         throw new Error(body?.error ?? `Server error: ${res.status}`);
       }
       fetch("/api/matches/compute", { method: "POST" }).catch(() => null);
-      router.push("/dashboard");
+      router.push(isEditing ? "/dashboard/profile" : "/dashboard");
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Submission failed. Please try again.");
     } finally {

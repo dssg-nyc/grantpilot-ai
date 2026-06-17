@@ -146,6 +146,9 @@ export const syncGrantsGov = inngest.createFunction(
               deadline: p.raw.closeDate
                 ? new Date(p.raw.closeDate).toISOString().split("T")[0]
                 : null,
+              posted_date: p.raw.openDate
+                ? new Date(p.raw.openDate).toISOString().split("T")[0]
+                : null,
               is_rolling_deadline: !p.raw.closeDate,
               eligibility_types: p.elig,
               focus_areas: [] as string[],

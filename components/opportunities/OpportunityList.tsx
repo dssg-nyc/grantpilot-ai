@@ -25,7 +25,7 @@ const TAB_SORT: Record<FeedTab, string> = {
   matches: "trending",
   trending: "trending",
   closing_soon: "deadline",
-  new: "newest",
+  new: "recent",
   browse: "newest",
 };
 

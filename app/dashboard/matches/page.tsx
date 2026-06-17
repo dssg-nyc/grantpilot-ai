@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMatches, useUpdateMatchStatus } from "@/hooks/useMatches";
 import { useAddToPipeline, usePipeline } from "@/hooks/usePipeline";
+import { useProfile } from "@/hooks/useProfile";
 import {
   ExternalLink, Bookmark, Plus, Check, ChevronDown, ChevronUp,
   CheckCircle2, XCircle, Lightbulb, DollarSign, Calendar,
@@ -324,8 +325,12 @@ export default function MatchesPage() {
   const [activeTab, setActiveTab] = useState("");
   const { data, isLoading, error } = useMatches();
   const { data: pipeline } = usePipeline();
+  const { data: profile } = useProfile();
   const matches = (data?.data ?? []) as MatchItem[];
   const stats = data?.stats;
+
+  // A profile is "ready for matching" once an org exists with enough completeness.
+  const hasProfile = !!profile?.organization && (profile?.profile_completeness ?? 0) >= 30;
 
   const pipelineOppIds = new Set<string>(
     (Array.isArray(pipeline) ? pipeline : []).map((p: { opportunity_id: string }) => p.opportunity_id),
@@ -334,6 +339,7 @@ export default function MatchesPage() {
   const filtered = activeTab
     ? matches.filter((m) => m.match.status === activeTab)
     : matches;
+  const activeTabLabel = STATUS_TABS.find((t) => t.value === activeTab)?.label ?? "All";
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -387,20 +393,62 @@ export default function MatchesPage() {
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — distinguishes "filter is empty" vs "no matches" vs "no profile" */}
       {!isLoading && !error && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white py-16 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
             <Sparkles className="h-6 w-6 text-slate-400" />
           </div>
-          <p className="mt-4 text-base font-semibold text-slate-700">No matches yet</p>
-          <p className="mt-1 text-sm text-slate-400">Complete your profile to get AI-powered grant matches</p>
-          <Link
-            href="/onboarding"
-            className="mt-5 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            Complete Profile
-          </Link>
+
+          {matches.length > 0 ? (
+            // Has matches, just none under the current filter tab
+            <>
+              <p className="mt-4 text-base font-semibold text-slate-700">
+                No {activeTabLabel.toLowerCase()} grants
+              </p>
+              <p className="mt-1 text-sm text-slate-400">
+                {activeTab === "saved"
+                  ? "Tap Save on a match to bookmark it here."
+                  : activeTab === "applied"
+                    ? "Mark a grant as applied to track it here."
+                    : activeTab === "new"
+                      ? "You're all caught up — no new matches right now."
+                      : "Try a different filter."}
+              </p>
+              <button
+                onClick={() => setActiveTab("")}
+                className="mt-5 rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                View all matches
+              </button>
+            </>
+          ) : hasProfile ? (
+            // Profile is complete but no matches computed yet
+            <>
+              <p className="mt-4 text-base font-semibold text-slate-700">No matches yet</p>
+              <p className="mt-1 text-sm text-slate-400 max-w-sm">
+                We&apos;re scoring grants against your profile. New opportunities sync every few hours — check back soon.
+              </p>
+              <Link
+                href="/dashboard/opportunities"
+                className="mt-5 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                Browse all opportunities
+              </Link>
+            </>
+          ) : (
+            // No profile yet — onboarding genuinely needed
+            <>
+              <p className="mt-4 text-base font-semibold text-slate-700">Complete your profile</p>
+              <p className="mt-1 text-sm text-slate-400">Add your organization details to get AI-powered grant matches.</p>
+              <Link
+                href="/onboarding"
+                className="mt-5 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                Complete Profile
+              </Link>
+            </>
+          )}
         </div>
       )}
 
