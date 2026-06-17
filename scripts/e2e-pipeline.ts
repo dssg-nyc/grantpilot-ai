@@ -27,9 +27,7 @@ async function main() {
   const { fetchGrantsGovOpportunities, fetchGrantDetails } = await import("@/lib/data-sources/grants-gov");
   const { embedTexts } = await import("@/lib/voyage/embeddings");
   const { supabaseAdmin } = await import("@/lib/supabase/admin");
-  const { vectorSimilaritySearch } = await import("@/lib/matching/vector-search");
-  const { computeCompositeScore } = await import("@/lib/matching/score-calculator");
-  const { batchAnalyzeMatches } = await import("@/lib/anthropic/match-analyzer");
+  const { computeMatchRowsForOrg } = await import("@/lib/matching/compute");
 
   // ================= STAGE 1: FETCH =================
   log(`\n=== STAGE 1: FETCH (grants.gov, up to ${GRANT_LIMIT}) ===`);
@@ -113,12 +111,12 @@ async function main() {
   await supabaseAdmin.from("organizations").delete().eq("ein", "00-0000001");
   const { data: org, error: orgErr } = await supabaseAdmin.from("organizations").insert({
     legal_name: "Rural Health Access Coalition",
-    org_type: "nonprofit",
+    org_type: "ngo",
     ein: "00-0000001",
     is_501c3: true,
     mission_statement: mission,
-    primary_focus_areas: ["health", "community_development"],
-    secondary_focus_areas: ["education"],
+    primary_focus_areas: ["Health & Wellness", "Community Development"],
+    secondary_focus_areas: ["Education"],
     service_states: ["CA", "TX", "MS", "AL"],
     geographic_service_area: "national",
     annual_budget_range: "250k_1m",
@@ -128,40 +126,34 @@ async function main() {
   if (orgErr) throw new Error("ORG SEED FAILED: " + orgErr.message);
   log(`Seeded org ${org.id} (${org.legal_name}), embedding dims=${orgEmbedding.length}`);
 
-  // ================= STAGE 3: MATCH =================
-  log(`\n=== STAGE 3: MATCH (vector search + composite score + AI analysis) ===`);
-  const topOpps = await vectorSimilaritySearch(orgEmbedding, 100);
-  log(`Vector search returned ${topOpps.length} candidate opportunities (threshold 0.3)`);
-
-  const scored = topOpps
-    .map(({ opportunity, similarity }) => ({
-      opportunity, similarity,
-      composite: computeCompositeScore(org as never, opportunity as never, similarity),
-    }))
-    .filter((o) => o.composite >= 25)
-    .sort((a, b) => b.composite - a.composite);
-  log(`${scored.length} passed scoring (composite >= 25)`);
-  if (!scored.length) throw new Error("MATCH FAILED: no opportunities scored above threshold");
-
-  const top = scored.slice(0, 5);
-  log(`Running AI deep analysis on top ${top.length} via Anthropic...`);
-  const analyses = await batchAnalyzeMatches(org as never, top.map((o) => o.opportunity as never));
-
-  const matchRows = top.map(({ opportunity, similarity, composite }) => {
-    const a = analyses.get(opportunity.id);
-    return {
-      org_id: org.id,
-      opportunity_id: opportunity.id,
-      raw_similarity_score: similarity,
-      match_score: a?.match_score ?? composite,
-      success_probability: a?.success_probability ?? 0,
-      match_reasons: a?.match_reasons ?? [],
-      disqualifiers: a?.disqualifiers ?? [],
-      recommended_action: a?.recommended_action ?? null,
-      ai_analysis_at: a ? new Date().toISOString() : null,
-      status: "new",
-    };
+  // ================= SEED CONFIRMED AUTH USER (linked to org) =================
+  log(`\n=== SEED AUTH USER (founder@ruralhealth.org) ===`);
+  const demoEmail = "founder@ruralhealth.org";
+  const demoPassword = "GrantPilot123!";
+  let userId: string | null = null;
+  const { data: created } = await supabaseAdmin.auth.admin.createUser({
+    email: demoEmail,
+    password: demoPassword,
+    email_confirm: true,
   });
+  if (created?.user) {
+    userId = created.user.id;
+  } else {
+    // Already exists from a previous run — locate the id.
+    const { data: list } = await supabaseAdmin.auth.admin.listUsers();
+    userId = list?.users.find((u) => u.email === demoEmail)?.id ?? null;
+  }
+  if (!userId) throw new Error("AUTH USER SEED FAILED");
+  await supabaseAdmin.from("users").upsert(
+    { id: userId, email: demoEmail, role: "org_admin", org_id: org.id, onboarding_completed: true },
+    { onConflict: "id" },
+  );
+  log(`Linked auth user ${userId} -> org ${org.id} (login: ${demoEmail} / ${demoPassword})`);
+
+  // ================= STAGE 3: MATCH =================
+  log(`\n=== STAGE 3: MATCH (computeMatchRowsForOrg — vector + per-dim composite + AI) ===`);
+  const matchRows = await computeMatchRowsForOrg(org as never, { analyzeTop: 8 });
+  if (!matchRows.length) throw new Error("MATCH FAILED: no opportunities scored above threshold");
   const { error: matchErr } = await supabaseAdmin.from("matches")
     .upsert(matchRows, { onConflict: "org_id,opportunity_id" });
   if (matchErr) throw new Error("MATCH UPSERT FAILED: " + matchErr.message);
@@ -170,14 +162,15 @@ async function main() {
   // ================= STAGE 4: SHOW =================
   log(`\n=== STAGE 4: SHOW (read back what the dashboard API would return) ===`);
   const { data: shown } = await supabaseAdmin.from("matches")
-    .select("match_score, success_probability, recommended_action, opportunity:opportunities(title, funder_name, amount_max, deadline, ai_summary)")
+    .select("match_score, success_probability, analysis_confidence, focus_area_score, size_fit_score, recommended_action, opportunity:opportunities(title, funder_name, amount_max, deadline)")
     .eq("org_id", org.id).order("match_score", { ascending: false });
 
   for (const m of shown ?? []) {
     const o = m.opportunity as unknown as { title: string; funder_name: string; amount_max: number | null; deadline: string | null };
     log(`\n  [${m.match_score}] ${o.title}`);
     log(`     Funder: ${o.funder_name} | Max: ${o.amount_max ? "$" + o.amount_max.toLocaleString() : "n/a"} | Deadline: ${o.deadline ?? "rolling"}`);
-    log(`     Success prob: ${m.success_probability}% | Action: ${m.recommended_action ?? "n/a"}`);
+    log(`     Success prob: ${m.success_probability}% (${m.analysis_confidence ?? "n/a"} conf) | focus=${m.focus_area_score?.toFixed?.(2)} size=${m.size_fit_score?.toFixed?.(2)}`);
+    log(`     Action: ${m.recommended_action ?? "n/a"}`);
   }
   log(`\n=== PIPELINE COMPLETE: fetch -> store -> match -> show all verified ===`);
 }

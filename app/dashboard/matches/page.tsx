@@ -42,6 +42,41 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
+// ─── Score breakdown bars ─────────────────────────────────────────────────────
+const DIMENSION_WEIGHTS: { key: keyof NonNullable<MatchItem["match"]["score_breakdown"]>; label: string; weight: number }[] = [
+  { key: "semantic", label: "Semantic fit", weight: 35 },
+  { key: "focus", label: "Focus overlap", weight: 25 },
+  { key: "eligibility", label: "Eligibility", weight: 20 },
+  { key: "geographic", label: "Geography", weight: 10 },
+  { key: "size", label: "Grant size fit", weight: 10 },
+];
+
+function ScoreBreakdown({ breakdown }: { breakdown: NonNullable<MatchItem["match"]["score_breakdown"]> }) {
+  return (
+    <div>
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        Score composition
+      </p>
+      <div className="space-y-2">
+        {DIMENSION_WEIGHTS.map(({ key, label, weight }) => {
+          const pct = Math.round(Math.max(0, Math.min(1, breakdown[key] ?? 0)) * 100);
+          return (
+            <div key={key} className="flex items-center gap-2">
+              <span className="w-24 shrink-0 text-[11px] text-slate-500">{label}</span>
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full bg-blue-500" style={{ width: `${pct}%` }} />
+              </div>
+              <span className="w-14 shrink-0 text-right text-[10px] tabular-nums text-slate-400">
+                {pct}% · {weight}w
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Amount formatter ─────────────────────────────────────────────────────────
 function fmt(n: number) {
   return n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M`
@@ -68,6 +103,14 @@ interface MatchItem {
     match_reasons: string[];
     disqualifiers: string[];
     recommended_action: string;
+    analysis_confidence?: "high" | "medium" | "low" | null;
+    score_breakdown?: {
+      semantic: number;
+      focus: number;
+      eligibility: number;
+      geographic: number;
+      size: number;
+    };
   };
   opportunity: {
     id: string;
@@ -101,6 +144,8 @@ function MatchCard({ item, inPipeline }: { item: MatchItem; inPipeline: boolean 
   const prob = match.success_probability;
   const reasons = match.match_reasons ?? [];
   const disqualifiers = match.disqualifiers ?? [];
+  const breakdown = match.score_breakdown;
+  const confidence = match.analysis_confidence;
   const badgeClass = FUNDER_COLORS[opp.funder_type] ?? "bg-slate-100 text-slate-600 border-slate-200";
   const funderLabel = opp.funder_type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -157,6 +202,11 @@ function MatchCard({ item, inPipeline }: { item: MatchItem; inPipeline: boolean 
               <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${probColor}`}>
                 {prob}% success probability
               </span>
+              {confidence && confidence !== "high" && (
+                <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                  {confidence} confidence
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -181,7 +231,7 @@ function MatchCard({ item, inPipeline }: { item: MatchItem; inPipeline: boolean 
       </div>
 
       {/* Expandable reasoning */}
-      {(reasons.length > 0 || disqualifiers.length > 0) && (
+      {(reasons.length > 0 || disqualifiers.length > 0 || breakdown) && (
         <div className="border-t border-slate-100">
           <button
             onClick={() => setExpanded((v) => !v)}
@@ -195,7 +245,9 @@ function MatchCard({ item, inPipeline }: { item: MatchItem; inPipeline: boolean 
           </button>
 
           {expanded && (
-            <div className="grid gap-4 px-5 pb-4 sm:grid-cols-2">
+            <div className="space-y-4 px-5 pb-4">
+            {breakdown && <ScoreBreakdown breakdown={breakdown} />}
+            <div className="grid gap-4 sm:grid-cols-2">
               {reasons.length > 0 && (
                 <div>
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
@@ -226,6 +278,7 @@ function MatchCard({ item, inPipeline }: { item: MatchItem; inPipeline: boolean 
                   </ul>
                 </div>
               )}
+            </div>
             </div>
           )}
         </div>

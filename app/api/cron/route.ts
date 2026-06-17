@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { fetchGrantsGovOpportunities, fetchGrantDetails } from "@/lib/data-sources/grants-gov";
 import { embedText } from "@/lib/voyage/embeddings";
+import { rateLimitGuard, strictRateLimiter } from "@/lib/redis/rate-limiter";
 import Anthropic from "@anthropic-ai/sdk";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -30,6 +31,10 @@ export async function GET(request: Request) {
   if (auth !== `Bearer ${process.env.CRON_SECRET}` && process.env.NODE_ENV === "production") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  // Defense in depth: even with a leaked secret, cap how often this expensive
+  // ingest can be triggered.
+  const limited = await rateLimitGuard(request, "cron-grants", strictRateLimiter);
+  if (limited) return limited;
 
   const { searchParams } = new URL(request.url);
   const maxPages = parseInt(searchParams.get("pages") ?? "2");

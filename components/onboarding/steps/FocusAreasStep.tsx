@@ -1,30 +1,16 @@
 "use client";
 
 import { OrgProfile } from "@/types/profile";
+import { FOCUS_AREA_TAXONOMY } from "@/lib/utils/taxonomy";
 
 interface StepProps {
   data: Partial<OrgProfile>;
   onChange: (updates: Partial<OrgProfile>) => void;
 }
 
-const FOCUS_AREAS = [
-  "Education",
-  "Health & Wellness",
-  "Environmental Conservation",
-  "Housing & Homelessness",
-  "Food Security",
-  "Economic Development",
-  "Arts & Culture",
-  "Youth Development",
-  "Elderly Care",
-  "Disability Services",
-  "Immigration & Refugees",
-  "Criminal Justice",
-  "Animal Welfare",
-  "Disaster Relief",
-  "Community Development",
-  "Technology & Digital Equity",
-];
+// Single canonical taxonomy — must match what AI extraction and the matching
+// engine use, otherwise user selections silently fail to match opportunities.
+const FOCUS_AREAS = [...FOCUS_AREA_TAXONOMY];
 
 const SDG_LIST: { number: number; name: string }[] = [
   { number: 1, name: "No Poverty" },

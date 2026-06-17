@@ -1,48 +1,14 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { vectorSimilaritySearch } from "@/lib/matching/vector-search";
-import { computeCompositeScore } from "@/lib/matching/score-calculator";
-import { batchAnalyzeMatches } from "@/lib/anthropic/match-analyzer";
+import { computeMatchRowsForOrg } from "@/lib/matching/compute";
 import type { OrgProfile } from "@/types/profile";
-import type { Opportunity } from "@/types/opportunity";
 
 async function computeMatchesForOrg(org: Record<string, unknown>) {
-  const topOpps = await vectorSimilaritySearch(org.profile_embedding as unknown as number[], 100);
+  const matchRows = await computeMatchRowsForOrg(org as unknown as OrgProfile & { id: string });
 
-  if (topOpps.length === 0)
+  if (matchRows.length === 0)
     return NextResponse.json({ matched: 0, message: "No similar grants found — grants may need embeddings" });
-
-  const scored = topOpps
-    .map(({ opportunity, similarity }) => ({
-      opportunity,
-      similarity,
-      composite_score: computeCompositeScore(org as unknown as OrgProfile, opportunity, similarity),
-    }))
-    .filter((o) => o.composite_score >= 25)
-    .sort((a, b) => b.composite_score - a.composite_score)
-    .slice(0, 20);
-
-  const analyses = await batchAnalyzeMatches(
-    org as unknown as OrgProfile,
-    scored.map((o) => o.opportunity as unknown as Opportunity),
-  );
-
-  const matchRows = scored.map(({ opportunity, similarity, composite_score }) => {
-    const analysis = analyses.get(opportunity.id);
-    return {
-      org_id: org.id,
-      opportunity_id: opportunity.id,
-      raw_similarity_score: similarity,
-      match_score: analysis?.match_score ?? Math.round(composite_score),
-      success_probability: analysis?.success_probability ?? 0,
-      match_reasons: analysis?.match_reasons ?? [],
-      disqualifiers: analysis?.disqualifiers ?? [],
-      recommended_action: analysis?.recommended_action ?? "",
-      status: "new",
-      ai_analysis_at: new Date().toISOString(),
-    };
-  });
 
   const { error } = await supabaseAdmin
     .from("matches")

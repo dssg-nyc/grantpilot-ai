@@ -20,6 +20,31 @@ const STEPS = [
   { label: "Preferences",  shortLabel: "Prefs",     description: "Match settings and notification options" },
 ];
 
+// Required fields per step. Returns an error message, or null when the step is
+// valid. Keeps users from advancing with data the matching engine depends on
+// (focus areas, budget, geography) left blank.
+function validateStep(step: number, data: Partial<OrgProfile>): string | null {
+  switch (step) {
+    case 0:
+      if (!data.legal_name?.trim()) return "Enter your organization's legal name to continue.";
+      return null;
+    case 1:
+      if (!data.mission_statement || data.mission_statement.trim().length < 20)
+        return "Add a mission statement (at least 20 characters) — it powers your matches.";
+      return null;
+    case 2:
+      if (!data.primary_focus_areas?.length)
+        return "Select at least one primary focus area.";
+      return null;
+    case 3:
+      if (!data.annual_budget_range) return "Select your annual operating budget range.";
+      if (!data.geographic_service_area) return "Select your geographic service area.";
+      return null;
+    default:
+      return null;
+  }
+}
+
 const INITIAL_DATA: Partial<OrgProfile> = {
   legal_name: "",
   org_type: "ngo",
@@ -59,6 +84,11 @@ export default function OnboardingWizard({ initialData }: { initialData?: Partia
   }
 
   function handleNext() {
+    const validationError = validateStep(currentStep, data);
+    if (validationError) {
+      setSubmitError(validationError);
+      return;
+    }
     if (currentStep < STEPS.length - 1) {
       setCurrentStep((s) => s + 1);
       setSubmitError(null);
@@ -67,6 +97,15 @@ export default function OnboardingWizard({ initialData }: { initialData?: Partia
   }
 
   async function handleSubmit() {
+    // Re-validate every gating step before the final POST.
+    for (let s = 0; s <= currentStep; s++) {
+      const validationError = validateStep(s, data);
+      if (validationError) {
+        setCurrentStep(s);
+        setSubmitError(validationError);
+        return;
+      }
+    }
     setSubmitting(true);
     setSubmitError(null);
     try {

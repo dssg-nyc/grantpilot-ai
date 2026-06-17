@@ -61,24 +61,40 @@ export async function GET(request: Request) {
     .eq("status", "new")
     .gte("created_at", oneDayAgo.toISOString());
 
-  const formatted = (data ?? []).map((row) => ({
-    match: {
-      id: row.id,
-      org_id: row.org_id,
-      opportunity_id: row.opportunity_id,
-      raw_similarity_score: row.raw_similarity_score,
+  const formatted = (data ?? []).map((row) => {
+    const score_breakdown = {
+      semantic: row.raw_similarity_score ?? 0,
+      focus: row.focus_area_score ?? 0,
+      eligibility: row.eligibility_score ?? 0,
+      geographic: row.geographic_score ?? 0,
+      size: row.size_fit_score ?? 0,
+    };
+    return {
+      match: {
+        id: row.id,
+        org_id: row.org_id,
+        opportunity_id: row.opportunity_id,
+        raw_similarity_score: row.raw_similarity_score,
+        match_score: row.match_score,
+        success_probability: row.success_probability,
+        match_reasons: row.match_reasons ?? [],
+        disqualifiers: row.disqualifiers ?? [],
+        recommended_action: row.recommended_action ?? "",
+        analysis_confidence: row.analysis_confidence ?? null,
+        score_breakdown,
+        status: row.status,
+        created_at: row.created_at,
+      },
+      opportunity: row.opportunity,
       match_score: row.match_score,
       success_probability: row.success_probability,
-      status: row.status,
-      created_at: row.created_at,
-    },
-    opportunity: row.opportunity,
-    match_score: row.match_score,
-    success_probability: row.success_probability,
-    match_reasons: row.match_reasons ?? [],
-    disqualifiers: row.disqualifiers ?? [],
-    recommended_action: row.recommended_action,
-  }));
+      match_reasons: row.match_reasons ?? [],
+      disqualifiers: row.disqualifiers ?? [],
+      recommended_action: row.recommended_action,
+      analysis_confidence: row.analysis_confidence ?? null,
+      score_breakdown,
+    };
+  });
 
   return NextResponse.json({
     data: formatted,

@@ -27,16 +27,47 @@ export function computeSizeFit(orgBudgetRange: string | undefined, oppMin: numbe
   return 0.1;
 }
 
-export function computeCompositeScore(org: OrgProfile, opp: Opportunity, vectorSimilarity: number): number {
-  if (!passesHardEligibility(org, opp)) return 0;
-  if (!passesGeographicFilter(org, opp)) return 0;
+export interface ScoreBreakdown {
+  /** Composite 0-100. 0 if the org fails a hard eligibility/geo gate. */
+  composite: number;
+  /** Each dimension is 0-1. */
+  semantic: number;
+  focus: number;
+  eligibility: number;
+  geographic: number;
+  size: number;
+  /** True when both hard gates pass. */
+  eligible: boolean;
+}
+
+/**
+ * Full per-dimension breakdown behind the composite score. Persisted to the
+ * matches table and surfaced in the "Why this match?" UI for explainability.
+ */
+export function computeScoreBreakdown(
+  org: OrgProfile,
+  opp: Opportunity,
+  vectorSimilarity: number,
+): ScoreBreakdown {
+  const passesEligibility = passesHardEligibility(org, opp);
+  const passesGeo = passesGeographicFilter(org, opp);
+  const eligible = passesEligibility && passesGeo;
 
   const semantic = vectorSimilarity;
   const focus = computeFocusAreaOverlap(org.primary_focus_areas, opp.focus_areas);
-  const eligibility = 1;
-  const geo = 1;
+  const eligibility = passesEligibility ? 1 : 0;
+  const geographic = passesGeo ? 1 : 0;
   const size = computeSizeFit(org.annual_budget_range, opp.amount_min, opp.amount_max);
 
-  const composite = semantic * 0.35 + focus * 0.25 + eligibility * 0.2 + geo * 0.1 + size * 0.1;
-  return Math.round(composite * 100);
+  const composite = eligible
+    ? Math.round(
+        (semantic * 0.35 + focus * 0.25 + eligibility * 0.2 + geographic * 0.1 + size * 0.1) * 100,
+      )
+    : 0;
+
+  return { composite, semantic, focus, eligibility, geographic, size, eligible };
+}
+
+export function computeCompositeScore(org: OrgProfile, opp: Opportunity, vectorSimilarity: number): number {
+  return computeScoreBreakdown(org, opp, vectorSimilarity).composite;
 }

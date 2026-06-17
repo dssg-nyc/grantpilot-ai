@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { PROFILE_EXTRACTION_PROMPT } from "@/lib/anthropic/prompts/profile-extraction";
+import { rateLimitGuard, strictRateLimiter } from "@/lib/redis/rate-limiter";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(request: Request) {
+  // This endpoint calls Claude on unauthenticated input — rate limit hard.
+  const limited = await rateLimitGuard(request, "ai-extract", strictRateLimiter);
+  if (limited) return limited;
+
   const body = await request.json();
   const { mission_statement } = body;
 

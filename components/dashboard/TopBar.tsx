@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, User } from "lucide-react";
+import { Bell, User, Menu } from "lucide-react";
+import { useUIStore } from "@/store/useUIStore";
 
 const PAGE_TITLES: Record<string, { title: string; description: string }> = {
   "/dashboard":               { title: "Dashboard",     description: "Your funding intelligence overview" },
@@ -16,14 +17,24 @@ const PAGE_TITLES: Record<string, { title: string; description: string }> = {
 export default function TopBar() {
   const pathname = usePathname();
   const meta = PAGE_TITLES[pathname] ?? { title: "GrantPilot", description: "" };
+  const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-slate-200 bg-white/80 px-6 py-3.5 backdrop-blur-sm">
-      <div>
-        <h1 className="text-sm font-semibold text-slate-900">{meta.title}</h1>
-        {meta.description && (
-          <p className="text-xs text-slate-400">{meta.description}</p>
-        )}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open menu"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 md:hidden"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div>
+          <h1 className="text-sm font-semibold text-slate-900">{meta.title}</h1>
+          {meta.description && (
+            <p className="text-xs text-slate-400">{meta.description}</p>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

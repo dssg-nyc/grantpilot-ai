@@ -22,6 +22,19 @@ export const syncSamGov = inngest.createFunction(
   { id: "sync-sam-gov", name: "Sync SAM.gov Opportunities", concurrency: { limit: 1 }, triggers: [{ cron: "0 2 * * *" }] },
   async ({ step }) => {
     if (!process.env.SAM_GOV_API_KEY) {
+      // Surface the gap in ops logs instead of silently no-op'ing, so it's
+      // obvious in the ingestion history that a source is unconfigured.
+      await step.run("log-skip", async () => {
+        await supabaseAdmin.from("ingestion_logs").insert({
+          source: "sam_gov",
+          source_type: "federal",
+          status: "partial",
+          completed_at: new Date().toISOString(),
+          error_message: "SAM_GOV_API_KEY not configured — source skipped",
+          records_fetched: 0,
+          records_new: 0,
+        });
+      });
       return { ok: true, skipped: true, reason: "SAM_GOV_API_KEY not configured" };
     }
 

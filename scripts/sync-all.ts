@@ -26,9 +26,7 @@ async function main() {
   const { scrapeAllFoundations } = await import("@/lib/firecrawl/scrapers/foundation-scraper");
   const { embedTexts } = await import("@/lib/voyage/embeddings");
   const { supabaseAdmin } = await import("@/lib/supabase/admin");
-  const { vectorSimilaritySearch } = await import("@/lib/matching/vector-search");
-  const { computeCompositeScore } = await import("@/lib/matching/score-calculator");
-  const { batchAnalyzeMatches } = await import("@/lib/anthropic/match-analyzer");
+  const { computeMatchRowsForOrg } = await import("@/lib/matching/compute");
 
   const upsert = (row: Record<string, unknown>) =>
     supabaseAdmin.from("opportunities").upsert(row, { onConflict: "source,source_id" });
@@ -97,20 +95,8 @@ async function main() {
   const { data: orgs } = await supabaseAdmin
     .from("organizations").select("*").not("profile_embedding", "is", null).gte("profile_completeness", 30);
   for (const org of orgs ?? []) {
-    const top = (await vectorSimilaritySearch(org.profile_embedding as unknown as number[], 100))
-      .map(({ opportunity, similarity }) => ({ opportunity, similarity, composite: computeCompositeScore(org as never, opportunity as never, similarity) }))
-      .filter((o) => o.composite >= 25).sort((a, b) => b.composite - a.composite).slice(0, 20);
-    if (!top.length) { log(`  ${org.legal_name}: 0`); continue; }
-    const analyses = await batchAnalyzeMatches(org as never, top.map((o) => o.opportunity as never));
-    const rows = top.map(({ opportunity, similarity, composite }) => {
-      const a = analyses.get(opportunity.id);
-      return {
-        org_id: org.id, opportunity_id: opportunity.id, raw_similarity_score: similarity,
-        match_score: a?.match_score ?? composite, success_probability: a?.success_probability ?? 0,
-        match_reasons: a?.match_reasons ?? [], disqualifiers: a?.disqualifiers ?? [],
-        recommended_action: a?.recommended_action ?? null, ai_analysis_at: a ? new Date().toISOString() : null, status: "new",
-      };
-    });
+    const rows = await computeMatchRowsForOrg(org as never, { analyzeTop: 10 });
+    if (!rows.length) { log(`  ${org.legal_name}: 0`); continue; }
     await supabaseAdmin.from("matches").upsert(rows, { onConflict: "org_id,opportunity_id" });
     log(`  ${org.legal_name}: ${rows.length} matches`);
   }

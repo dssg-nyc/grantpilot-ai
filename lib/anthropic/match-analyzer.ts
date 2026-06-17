@@ -33,17 +33,40 @@ export async function analyzeMatch(org: OrgProfile, opportunity: Opportunity): P
   const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
   try {
     const parsed = JSON.parse(text) as MatchAnalysis;
-    // Validate that we got real scores, not zeros from a malformed response
     if (typeof parsed.match_score !== "number") return fallback;
-    return parsed;
+    return normalizeAnalysis(parsed);
   } catch {
     // Try extracting JSON from text if Claude added commentary
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      try { return JSON.parse(jsonMatch[0]) as MatchAnalysis; } catch { /* fall through */ }
+      try { return normalizeAnalysis(JSON.parse(jsonMatch[0]) as MatchAnalysis); } catch { /* fall through */ }
     }
     return fallback;
   }
+}
+
+const clamp = (n: unknown, fallbackVal = 0): number => {
+  const v = typeof n === "number" && Number.isFinite(n) ? n : fallbackVal;
+  return Math.max(0, Math.min(100, Math.round(v)));
+};
+
+/**
+ * Sanitize raw LLM output: clamp scores to 0-100, coerce arrays, and enforce
+ * the invariant that success_probability never exceeds match_score (you cannot
+ * be more likely to win than you are a fit).
+ */
+function normalizeAnalysis(a: MatchAnalysis): MatchAnalysis {
+  const match_score = clamp(a.match_score);
+  const success_probability = Math.min(match_score, clamp(a.success_probability));
+  const confidence = a.analysis_confidence;
+  return {
+    match_score,
+    success_probability,
+    match_reasons: Array.isArray(a.match_reasons) ? a.match_reasons.filter((r) => typeof r === "string" && r.trim()).slice(0, 4) : [],
+    disqualifiers: Array.isArray(a.disqualifiers) ? a.disqualifiers.filter((d) => typeof d === "string" && d.trim()).slice(0, 3) : [],
+    recommended_action: typeof a.recommended_action === "string" ? a.recommended_action : "",
+    analysis_confidence: confidence === "high" || confidence === "medium" || confidence === "low" ? confidence : "medium",
+  };
 }
 
 export async function batchAnalyzeMatches(

@@ -149,10 +149,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Upsert (not update) so the link is established even when the public.users
+  // row was never created — e.g. an email-confirmation sign-in that didn't
+  // route through /api/auth/callback. Without this the org is orphaned and the
+  // dashboard shows "Complete your profile" forever.
   await supabase
     .from("users")
-    .update({ org_id: org.id, onboarding_completed: true })
-    .eq("id", user.id);
+    .upsert(
+      { id: user.id, email: user.email ?? "", org_id: org.id, onboarding_completed: true },
+      { onConflict: "id" },
+    );
 
   return NextResponse.json({ organization: org }, { status: 201 });
 }
