@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
+import { Bot, ArrowRight } from "lucide-react";
 import type { PipelineItem } from "@/types/pipeline";
 import { usePipelineDraft, useGenerateDraft } from "@/hooks/usePipeline";
 
@@ -107,13 +109,34 @@ export default function PipelineItemDetailModal({ item, onClose }: PipelineItemD
             )}
           </div>
 
-          {/* AI Draft Assistant */}
+          {/* AI Assistant — full conversational drafting */}
           <div className="border-t border-gray-200 pt-5">
-            <h3 className="text-sm font-semibold text-gray-900">AI Draft Assistant</h3>
+            <Link
+              href={`/dashboard/assistant?pipeline_item_id=${item.id}`}
+              className="group flex items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3.5 transition hover:border-blue-200 hover:bg-blue-50"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-700 to-blue-900">
+                  <Bot className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Draft with AI Assistant</p>
+                  <p className="text-xs text-slate-500">
+                    Build a full, section-by-section application through a conversation
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 shrink-0 text-blue-600 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </div>
+
+          {/* Quick AI Draft Assistance */}
+          <div className="border-t border-gray-200 pt-5">
+            <h3 className="text-sm font-semibold text-gray-900">Quick Draft Assistance</h3>
             <p className="mt-1 text-xs text-gray-500">
-              Structured starting points to help you draft faster — mission alignment, funder fit,
-              a budget narrative starter, and talking points. Always review and edit before you
-              submit; this isn&apos;t finished copy.
+              A fast, single-shot starting point — mission alignment, funder fit, a budget
+              narrative starter, and talking points. Always review and edit before you submit;
+              this isn&apos;t finished copy.
             </p>
 
             <div className="mt-4">

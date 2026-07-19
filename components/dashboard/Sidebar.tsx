@@ -13,11 +13,13 @@ import {
   Landmark,
   ChevronRight,
   X,
+  Bot,
 } from "lucide-react";
 import { useUIStore } from "@/store/useUIStore";
 
 const NAV = [
   { label: "Dashboard",     href: "/dashboard",                icon: LayoutDashboard },
+  { label: "AI Assistant",  href: "/dashboard/assistant",      icon: Bot },
   { label: "My Matches",    href: "/dashboard/matches",        icon: Sparkles },
   { label: "Opportunities", href: "/dashboard/opportunities",  icon: Search },
   { label: "Pipeline",      href: "/dashboard/pipeline",       icon: Kanban },

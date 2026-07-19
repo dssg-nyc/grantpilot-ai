@@ -1,6 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { FOCUS_AREA_TAXONOMY } from "@/lib/utils/taxonomy";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const VALID_FOCUS_AREAS = new Set<string>(FOCUS_AREA_TAXONOMY);
+const VALID_ELIGIBILITY_TYPES = new Set([
+  "nonprofit_501c3", "nonprofit_other", "educational", "government", "individual", "any",
+]);
 
 export interface ExtractedGrant {
   title: string;
@@ -34,8 +39,8 @@ Each item must have these exact fields:
 - amount_min: number | null (minimum award in USD, or null)
 - amount_max: number | null (maximum award in USD, or null)
 - application_url: string | null (direct application link or null)
-- focus_areas: string[] (e.g. ["education","health","environment"])
-- eligibility_types: string[] (e.g. ["nonprofit_501c3","educational"])
+- focus_areas: string[] (1-3 values chosen ONLY from this exact list — do not invent new ones, pick the closest matches: ${JSON.stringify(FOCUS_AREA_TAXONOMY)})
+- eligibility_types: string[] (values chosen ONLY from: ["nonprofit_501c3","nonprofit_other","educational","government","individual","any"])
 
 If no grants are found, return [].
 Return ONLY the JSON array.
@@ -48,7 +53,16 @@ ${markdown.substring(0, 14000)}`
     const text = resp.content[0]?.type === "text" ? resp.content[0].text.trim() : "[]";
     const clean = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
     const parsed = JSON.parse(clean);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // Belt-and-suspenders: even with the constrained-list prompt above,
+    // don't trust the model to always stay on-list — filter here so
+    // off-taxonomy values (which silently never match/filter correctly
+    // downstream) can't slip through.
+    return parsed.map((g: ExtractedGrant) => ({
+      ...g,
+      focus_areas: (g.focus_areas ?? []).filter((a) => VALID_FOCUS_AREAS.has(a)),
+      eligibility_types: (g.eligibility_types ?? []).filter((e) => VALID_ELIGIBILITY_TYPES.has(e)),
+    }));
   } catch {
     return [];
   }
