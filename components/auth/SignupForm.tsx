@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import OAuthButtons from "./OAuthButtons";
@@ -15,46 +14,29 @@ export default function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [verifyPending, setVerifyPending] = useState(false);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
-      },
+    const response = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, full_name: fullName }),
     });
+    const result = await response.json();
 
-    if (error) {
-      setError(error.message);
+    if (!response.ok) {
+      setError(result.error);
       setLoading(false);
       return;
     }
 
     // Email confirmation required
-    if (data.user && !data.session) {
+    if (result.verifyPending) {
       setVerifyPending(true);
       setLoading(false);
       return;
-    }
-
-    // Auto-confirmed (dev mode) — create user record and go to onboarding
-    if (data.user) {
-      await supabase.from("users").upsert({
-        id: data.user.id,
-        email: data.user.email ?? email,
-        role: "org_admin",
-        onboarding_completed: false,
-      });
     }
 
     router.push("/onboarding");

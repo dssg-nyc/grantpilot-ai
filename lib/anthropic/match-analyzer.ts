@@ -4,8 +4,8 @@ import type { Opportunity } from "@/types/opportunity";
 import type { OrgProfile } from "@/types/profile";
 
 export interface MatchAnalysis {
-  match_score: number;
-  success_probability: number;
+  match_score: number | null;
+  success_probability: number | null;
   match_reasons: string[];
   disqualifiers: string[];
   recommended_action: string;
@@ -13,10 +13,10 @@ export interface MatchAnalysis {
 }
 
 const fallback: MatchAnalysis = {
-  match_score: 0,
-  success_probability: 0,
+  match_score: null,
+  success_probability: null,
   match_reasons: [],
-  disqualifiers: ["Analysis unavailable"],
+  disqualifiers: ["AI analysis unavailable — showing composite-based score"],
   recommended_action: "Review eligibility manually",
   analysis_confidence: "low",
 };
@@ -39,7 +39,10 @@ export async function analyzeMatch(org: OrgProfile, opportunity: Opportunity): P
     // Try extracting JSON from text if Claude added commentary
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      try { return normalizeAnalysis(JSON.parse(jsonMatch[0]) as MatchAnalysis); } catch { /* fall through */ }
+      try {
+        const extracted = JSON.parse(jsonMatch[0]) as MatchAnalysis;
+        if (typeof extracted.match_score === "number") return normalizeAnalysis(extracted);
+      } catch { /* fall through */ }
     }
     return fallback;
   }

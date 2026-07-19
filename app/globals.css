@@ -1,27 +1,68 @@
 @import "tailwindcss";
 
+/*
+ * GrantPilot AI is part of the NYC DSSG (Data Science for Social Good)
+ * ecosystem (https://www.nyc-dssg.org). This theme remaps Tailwind's
+ * built-in "blue" (navy or blue) and "indigo" (orange) color scales to
+ * DSSG's brand palette so every component using those utility classes
+ * (buttons, badges, gradients, nav states) inherits DSSG's colors.
+ * Source tokens (from nyc-dssg.org): primary-blue #002D72,
+ * secondary-blue #0056B3, primary-orange #F47E2D, secondary-orange #FF6B35.
+ */
+@theme {
+  --color-blue-50: #eef4fb;
+  --color-blue-100: #dce8f6;
+  --color-blue-200: #b9d1ed;
+  --color-blue-300: #8bb3e0;
+  --color-blue-400: #548ecd;
+  --color-blue-500: #2569b8;
+  --color-blue-600: #0056b3;
+  --color-blue-700: #00478f;
+  --color-blue-800: #003a73;
+  --color-blue-900: #002d72;
+  --color-blue-950: #001c48;
+
+  --color-indigo-50: #fff3ea;
+  --color-indigo-100: #ffe3cc;
+  --color-indigo-200: #ffc699;
+  --color-indigo-300: #ffa666;
+  --color-indigo-400: #ff8a49;
+  --color-indigo-500: #ff6b35;
+  --color-indigo-600: #f47e2d;
+  --color-indigo-700: #d9631a;
+  --color-indigo-800: #b34f15;
+  --color-indigo-900: #8f3f11;
+  --color-indigo-950: #4d210a;
+
+  --font-display: var(--font-playfair), Georgia, serif;
+}
+
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
-  --brand-50: #eff6ff;
-  --brand-100: #dbeafe;
-  --brand-500: #3b82f6;
-  --brand-600: #2563eb;
-  --brand-700: #1d4ed8;
-  --brand-900: #1e3a8a;
+  --dssg-navy: #002d72;
+  --dssg-blue: #0056b3;
+  --dssg-orange: #f47e2d;
+  --dssg-orange-alt: #ff6b35;
+  --brand-50: #eef4fb;
+  --brand-100: #dce8f6;
+  --brand-500: #2569b8;
+  --brand-600: #0056b3;
+  --brand-700: #00478f;
+  --brand-900: #002d72;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     Segoe UI, Roboto, Helvetica, Arial;
   -webkit-font-smoothing: antialiased;
 }

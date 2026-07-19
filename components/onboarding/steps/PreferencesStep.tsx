@@ -75,7 +75,7 @@ export default function PreferencesStep({ data, onChange }: StepProps) {
                 value={formatCurrency(data.min_grant_size)}
                 onChange={(e) => onChange({ min_grant_size: parseCurrency(e.target.value) })}
                 placeholder="5,000"
-                className="w-full rounded-lg border border-slate-300 pl-7 pr-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-slate-300 bg-white pl-7 pr-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -94,7 +94,7 @@ export default function PreferencesStep({ data, onChange }: StepProps) {
                 value={formatCurrency(data.max_grant_size)}
                 onChange={(e) => onChange({ max_grant_size: parseCurrency(e.target.value) })}
                 placeholder="500,000"
-                className="w-full rounded-lg border border-slate-300 pl-7 pr-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-slate-300 bg-white pl-7 pr-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -112,8 +112,8 @@ export default function PreferencesStep({ data, onChange }: StepProps) {
                 key={type}
                 className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition ${
                   checked
-                    ? "border-blue-600 bg-blue-50 text-blue-800"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50"
+                    ? "border-blue-500 bg-blue-50 text-blue-800"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50/50"
                 }`}
               >
                 <input
@@ -169,7 +169,7 @@ export default function PreferencesStep({ data, onChange }: StepProps) {
               key={opt.value}
               className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${
                 data.notification_frequency === opt.value
-                  ? "border-blue-600 bg-blue-50"
+                  ? "border-blue-500 bg-blue-50"
                   : "border-slate-200 bg-white hover:border-blue-300"
               }`}
             >
@@ -181,7 +181,7 @@ export default function PreferencesStep({ data, onChange }: StepProps) {
                 className="mt-0.5 h-4 w-4 accent-blue-600"
               />
               <div>
-                <p className="text-sm font-medium text-slate-800">{opt.label}</p>
+                <p className="text-sm font-medium text-slate-900">{opt.label}</p>
                 <p className="text-xs text-slate-500">{opt.description}</p>
               </div>
             </label>

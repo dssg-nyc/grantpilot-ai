@@ -1,13 +1,6 @@
+import { Draggable, Droppable } from "@hello-pangea/dnd";
 import PipelineCard from "@/components/pipeline/PipelineCard";
-
-interface PipelineItem {
-  id: string;
-  stage: string;
-  title: string;
-  notes?: string;
-  deadline?: string;
-  opportunity?: { title: string; funder_name: string } | null;
-}
+import type { PipelineItem } from "@/types/pipeline";
 
 const STAGE_META: Record<string, { label: string; color: string; bg: string; dot: string }> = {
   saved:       { label: "Saved",       color: "text-slate-600",   bg: "bg-slate-100",   dot: "bg-slate-400"   },
@@ -18,7 +11,19 @@ const STAGE_META: Record<string, { label: string; color: string; bg: string; dot
   rejected:    { label: "Rejected",    color: "text-red-600",     bg: "bg-red-50",      dot: "bg-red-400"     },
 };
 
-export default function PipelineColumn({ stage, items = [] }: { stage: string; items?: PipelineItem[] }) {
+export default function PipelineColumn({
+  stage,
+  items = [],
+  onDelete,
+  isItemUpdating,
+  onOpenDetail,
+}: {
+  stage: string;
+  items?: PipelineItem[];
+  onDelete?: (id: string) => void;
+  isItemUpdating?: (id: string) => boolean;
+  onOpenDetail?: (item: PipelineItem) => void;
+}) {
   const meta = STAGE_META[stage] ?? { label: stage, color: "text-slate-600", bg: "bg-slate-100", dot: "bg-slate-400" };
 
   return (
@@ -35,22 +40,45 @@ export default function PipelineColumn({ stage, items = [] }: { stage: string; i
       </div>
 
       {/* Items */}
-      <div className="flex flex-1 flex-col gap-2 p-2">
-        {items.length === 0 && (
-          <div className="flex flex-1 items-center justify-center py-6">
-            <p className="text-[11px] text-slate-300 text-center">Drop grants here</p>
+      <Droppable droppableId={stage}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={`flex flex-1 flex-col gap-2 p-2 transition-colors ${
+              snapshot.isDraggingOver ? "bg-slate-100" : ""
+            }`}
+          >
+            {items.length === 0 && (
+              <div className="flex flex-1 items-center justify-center py-6">
+                <p className="text-[11px] text-slate-300 text-center">Drop grants here</p>
+              </div>
+            )}
+            {items.map((item, index) => (
+              <Draggable key={item.id} draggableId={item.id} index={index}>
+                {(dragProvided) => (
+                  <div
+                    ref={dragProvided.innerRef}
+                    {...dragProvided.draggableProps}
+                    {...dragProvided.dragHandleProps}
+                    onClick={() => onOpenDetail?.(item)}
+                  >
+                    <PipelineCard
+                      stage={stage}
+                      title={item.opportunity?.title ?? item.title}
+                      funder={item.opportunity?.funder_name}
+                      deadline={item.deadline ?? undefined}
+                      onDelete={onDelete ? () => onDelete(item.id) : undefined}
+                      isUpdating={isItemUpdating ? isItemUpdating(item.id) : false}
+                    />
+                  </div>
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
           </div>
         )}
-        {items.map((item) => (
-          <PipelineCard
-            key={item.id}
-            stage={stage}
-            title={item.opportunity?.title ?? item.title}
-            funder={item.opportunity?.funder_name}
-            deadline={item.deadline}
-          />
-        ))}
-      </div>
+      </Droppable>
     </section>
   );
 }

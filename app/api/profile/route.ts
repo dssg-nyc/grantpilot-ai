@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { inngest } from "@/inngest/client";
 import { embedText } from "@/lib/voyage/embeddings";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { profileSchema, profileUpdateSchema } from "@/lib/utils/validators";
 
 function computeProfileCompleteness(org: Record<string, unknown>): number {
   const fields = [
@@ -89,10 +90,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: Record<string, unknown>;
-  try { body = await request.json(); } catch {
+  let rawBody: unknown;
+  try { rawBody = await request.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  const parsed = profileSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid request" },
+      { status: 400 },
+    );
+  }
+  // Validated + allow-listed: unexpected/forbidden fields (id, profile_embedding,
+  // profile_completeness, created_by, created_at, updated_at, ...) are stripped.
+  const body: Record<string, unknown> = parsed.data;
 
   let profileEmbedding: number[] | null = null;
   if (body.mission_statement) {
@@ -100,7 +112,7 @@ export async function POST(request: Request) {
     profileEmbedding = await embedText(text);
   }
 
-  const { id: _id, ...bodyWithoutId } = body as Record<string, unknown> & { id?: unknown };
+  const bodyWithoutId = body;
 
   // If the user already has an org, re-running onboarding should UPDATE it —
   // not create a duplicate that orphans their existing matches and pipeline.
@@ -171,10 +183,21 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: Record<string, unknown>;
-  try { body = await request.json(); } catch {
+  let rawBody: unknown;
+  try { rawBody = await request.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  const parsed = profileUpdateSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid request" },
+      { status: 400 },
+    );
+  }
+  // Validated + allow-listed: forbidden fields (id, profile_embedding,
+  // profile_completeness, created_by, created_at, updated_at, ...) are stripped.
+  const body: Record<string, unknown> = parsed.data;
 
   const { data: userData } = await supabase
     .from("users")

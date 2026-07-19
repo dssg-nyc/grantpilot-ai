@@ -10,8 +10,8 @@ export default function EditProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
       </div>
     );
   }
@@ -21,7 +21,10 @@ export default function EditProfilePage() {
   const org = data?.organization as Record<string, unknown> | null | undefined;
   let initialData: Partial<OrgProfile> | undefined;
   if (org) {
-    const { profile_embedding: _e, created_at: _c, updated_at: _u, id: _id, ...rest } = org;
+    const OMIT_FIELDS = ["profile_embedding", "created_at", "updated_at", "id"];
+    const rest = Object.fromEntries(
+      Object.entries(org).filter(([key]) => !OMIT_FIELDS.includes(key)),
+    );
     initialData = rest as Partial<OrgProfile>;
   }
 

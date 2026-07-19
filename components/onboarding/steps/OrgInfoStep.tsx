@@ -21,13 +21,13 @@ export default function OrgInfoStep({ data, onChange }: StepProps) {
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-semibold text-slate-900">Organization Information</h2>
-        <p className="mt-1 text-sm text-slate-500">Tell us about your organization's basic details.</p>
+        <p className="mt-1 text-sm text-slate-500">Tell us about your organization&apos;s basic details.</p>
       </div>
 
       {/* Legal Name */}
       <div className="space-y-1">
         <label htmlFor="legal_name" className="block text-sm font-medium text-slate-700">
-          Legal Name <span className="text-red-500">*</span>
+          Legal Name <span className="text-rose-500">*</span>
         </label>
         <input
           id="legal_name"
@@ -35,7 +35,7 @@ export default function OrgInfoStep({ data, onChange }: StepProps) {
           value={data.legal_name ?? ""}
           onChange={(e) => onChange({ legal_name: e.target.value })}
           placeholder="Full legal name of your organization"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </div>
 
@@ -50,7 +50,7 @@ export default function OrgInfoStep({ data, onChange }: StepProps) {
           value={data.dba_name ?? ""}
           onChange={(e) => onChange({ dba_name: e.target.value || null })}
           placeholder="Operating name if different from legal name"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </div>
 
@@ -67,7 +67,7 @@ export default function OrgInfoStep({ data, onChange }: StepProps) {
             onChange={(e) => onChange({ ein: e.target.value || null })}
             placeholder="XX-XXXXXXX"
             maxLength={10}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
 
@@ -101,7 +101,7 @@ export default function OrgInfoStep({ data, onChange }: StepProps) {
       {/* Org Type */}
       <div className="space-y-1">
         <label htmlFor="org_type" className="block text-sm font-medium text-slate-700">
-          Organization Type <span className="text-red-500">*</span>
+          Organization Type <span className="text-rose-500">*</span>
         </label>
         <select
           id="org_type"
@@ -130,7 +130,7 @@ export default function OrgInfoStep({ data, onChange }: StepProps) {
             value={data.year_founded ?? ""}
             onChange={(e) => onChange({ year_founded: e.target.value ? parseInt(e.target.value, 10) : null })}
             placeholder="e.g. 2010"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
 
@@ -144,7 +144,7 @@ export default function OrgInfoStep({ data, onChange }: StepProps) {
             value={data.website_url ?? ""}
             onChange={(e) => onChange({ website_url: e.target.value || null })}
             placeholder="https://yourorg.org"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
       </div>

@@ -43,6 +43,21 @@ export interface ScoreBreakdown {
 /**
  * Full per-dimension breakdown behind the composite score. Persisted to the
  * matches table and surfaced in the "Why this match?" UI for explainability.
+ *
+ * Weighting: composite = semantic*0.5 + focus*0.35 + size*0.15.
+ *
+ * `eligibility` and `geographic` are NOT part of the weighted sum. Both are
+ * binary (0/1) outputs of the same hard gates (`passesHardEligibility` /
+ * `passesGeographicFilter`) that already zero out the whole composite via
+ * `eligible` below when either fails. Every match that survives to be scored
+ * has therefore already passed both gates, so including them as weighted
+ * terms would just add a fixed, non-discriminating constant to every
+ * surfaced match instead of differentiating between them. They remain as
+ * gates (see `eligible`) and are still returned in `ScoreBreakdown` for
+ * explainability (e.g. "why this match passed eligibility/geo"), just not
+ * as scored inputs. The remaining weights (originally 0.35 : 0.25 : 0.10 for
+ * semantic : focus : size out of the old 0.70 non-gate total) are
+ * proportionally rescaled to sum to 1.0.
  */
 export function computeScoreBreakdown(
   org: OrgProfile,
@@ -60,9 +75,7 @@ export function computeScoreBreakdown(
   const size = computeSizeFit(org.annual_budget_range, opp.amount_min, opp.amount_max);
 
   const composite = eligible
-    ? Math.round(
-        (semantic * 0.35 + focus * 0.25 + eligibility * 0.2 + geographic * 0.1 + size * 0.1) * 100,
-      )
+    ? Math.round((semantic * 0.5 + focus * 0.35 + size * 0.15) * 100)
     : 0;
 
   return { composite, semantic, focus, eligibility, geographic, size, eligible };

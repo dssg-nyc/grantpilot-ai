@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Search, X } from "lucide-react";
 
 interface SearchBarProps {
@@ -17,9 +17,15 @@ export default function SearchBar({
   const [localValue, setLocalValue] = useState(value);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
+  // Adjust local state when `value` changes externally (e.g. a parent-driven
+  // reset) — done during render rather than in an effect, per the React docs
+  // "Adjusting some state when a prop changes" pattern, so it doesn't trigger
+  // a second, cascading render pass.
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
     setLocalValue(value);
-  }, [value]);
+  }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const v = e.target.value;

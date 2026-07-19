@@ -1,13 +1,13 @@
 "use client";
 
-import { DollarSign, Search, Users, Target, ArrowRight } from "lucide-react";
+import { Search, Target, RefreshCw, Users, ArrowRight } from "lucide-react";
 
 const stats = [
   {
-    icon: DollarSign,
-    value: "$2.4B",
-    label: "in grants tracked",
-    description: "Across federal and private foundation sources",
+    icon: Search,
+    value: "2 Channels",
+    label: "federal + foundation",
+    description: "Live sync from Grants.gov and leading private foundations",
     glow: "shadow-emerald-400/20",
     ring: "ring-emerald-400/20",
     iconBg: "bg-emerald-400/10",
@@ -15,10 +15,10 @@ const stats = [
     valueGradient: "from-emerald-300 to-emerald-100",
   },
   {
-    icon: Search,
-    value: "10,000+",
-    label: "opportunities",
-    description: "Updated daily from live data feeds",
+    icon: Target,
+    value: "AI-Scored",
+    label: "match ranking",
+    description: "Composite fit across mission, eligibility, and geography",
     glow: "shadow-blue-400/20",
     ring: "ring-blue-400/20",
     iconBg: "bg-blue-400/10",
@@ -26,10 +26,10 @@ const stats = [
     valueGradient: "from-blue-300 to-blue-100",
   },
   {
-    icon: Users,
-    value: "500+",
-    label: "nonprofits served",
-    description: "From grassroots orgs to national foundations",
+    icon: RefreshCw,
+    value: "Every 4hrs",
+    label: "opportunity sync",
+    description: "Continuous ingestion, never a stale spreadsheet",
     glow: "shadow-indigo-400/20",
     ring: "ring-indigo-400/20",
     iconBg: "bg-indigo-400/10",
@@ -37,10 +37,10 @@ const stats = [
     valueGradient: "from-indigo-300 to-indigo-100",
   },
   {
-    icon: Target,
-    value: "87%",
-    label: "match accuracy",
-    description: "Relevance confirmed by grant writers",
+    icon: Users,
+    value: "NYC DSSG",
+    label: "built pro bono",
+    description: "Part of the NYC Data Science for Social Good ecosystem",
     glow: "shadow-violet-400/20",
     ring: "ring-violet-400/20",
     iconBg: "bg-violet-400/10",
@@ -71,12 +71,12 @@ export default function Stats() {
           <div className="mb-4 inline-flex items-center rounded-full border border-white/15 bg-white/8 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-blue-100">
             By the Numbers
           </div>
-          <h2 className="text-3xl font-black tracking-tight text-white md:text-5xl">
-            Proven impact for nonprofits
+          <h2 className="font-display text-3xl font-bold tracking-tight text-white md:text-5xl">
+            Built for nonprofit grant teams
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-lg text-blue-100/80 leading-relaxed">
-            Thousands of organizations trust GrantPilot to power their grant
-            discovery workflows every day.
+            Continuous, AI-powered grant discovery — built in the NYC DSSG
+            ecosystem.
           </p>
         </div>
 
@@ -98,7 +98,7 @@ export default function Stats() {
 
                 {/* Big number with gradient */}
                 <p
-                  className={`mb-1 bg-gradient-to-br ${stat.valueGradient} bg-clip-text text-5xl font-black tracking-tight text-transparent`}
+                  className={`mb-1 bg-gradient-to-br ${stat.valueGradient} bg-clip-text text-3xl font-black tracking-tight text-transparent md:text-4xl`}
                 >
                   {stat.value}
                 </p>
@@ -126,8 +126,7 @@ export default function Stats() {
                 Ready to find your next grant?
               </p>
               <p className="mt-1.5 text-blue-100/70">
-                Join hundreds of nonprofits discovering better-fit funding in
-                less time.
+                Free to start — discover better-fit funding in less time.
               </p>
             </div>
             <a

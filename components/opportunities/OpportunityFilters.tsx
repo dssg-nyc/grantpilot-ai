@@ -2,6 +2,7 @@
 
 import { SlidersHorizontal, X } from "lucide-react";
 import { useState } from "react";
+import { FOCUS_AREA_TAXONOMY } from "@/lib/utils/taxonomy";
 
 export interface FilterState {
   funder_type: string;
@@ -36,12 +37,10 @@ const FUNDING_TYPES = [
   { value: "contract",    label: "Contract" },
 ];
 
-const FOCUS_AREAS = [
-  "Education", "Health & Wellness", "Environment", "Housing",
-  "Food Security", "Economic Development", "Arts & Culture",
-  "Youth Development", "Community Development", "Technology",
-  "Immigration", "Criminal Justice", "Disability Rights",
-];
+// Single canonical taxonomy — must match what AI extraction/classification
+// and the matching engine use (see components/onboarding/steps/FocusAreasStep.tsx),
+// otherwise a selected filter silently never matches any opportunity.
+const FOCUS_AREAS = [...FOCUS_AREA_TAXONOMY];
 
 const GEO_SCOPES = [
   { value: "",            label: "Any" },

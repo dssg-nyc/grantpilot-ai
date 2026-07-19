@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { pipelineUpdateSchema } from "@/lib/utils/validators";
 
 async function getOrgId() {
   const supabase = await createSupabaseServerClient();
@@ -17,15 +18,28 @@ export async function PATCH(
   const { supabase, orgId } = await getOrgId();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: Record<string, unknown>;
-  try { body = await request.json(); } catch {
+  let rawBody: unknown;
+  try { rawBody = await request.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  body.updated_at = new Date().toISOString();
+
+  const parsed = pipelineUpdateSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid request" },
+      { status: 400 },
+    );
+  }
+  // Validated + allow-listed: org_id, opportunity_id, id, created_at,
+  // updated_at, match_id are never client-settable via this route.
+  const updateData: Record<string, unknown> = {
+    ...parsed.data,
+    updated_at: new Date().toISOString(),
+  };
 
   const { data, error } = await supabase
     .from("pipeline_items")
-    .update(body)
+    .update(updateData)
     .eq("id", id)
     .eq("org_id", orgId)
     .select()

@@ -9,13 +9,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // DSSG NYC brand tokens (https://www.nyc-dssg.org) — mirrors the
+        // blue-*/indigo-* overrides in app/globals.css.
         brand: {
-          50: "#f0f4ff",
-          100: "#e0e9ff",
-          500: "#4f6ef7",
-          600: "#3d5ce6",
-          700: "#2d4ad0",
-          900: "#1a2d8a",
+          50: "#eef4fb",
+          100: "#dce8f6",
+          500: "#2569b8",
+          600: "#0056b3",
+          700: "#00478f",
+          900: "#002d72",
         },
       },
     },

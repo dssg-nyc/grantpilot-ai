@@ -27,21 +27,22 @@ export const monitorRss = inngest.createFunction(
 
     if (!items.length) return { ok: true, ingested: 0 };
 
-    let ingested = 0;
+    let newCount = 0;
+    let updatedCount = 0;
     const errors: string[] = [];
 
     for (const item of items) {
       try {
-        // Skip if already in DB
+        if (!item.title || item.title.length < 5) continue;
+
+        // Look up by (source, source_id) — same composite key convention as
+        // every other ingestion function — instead of skipping re-syncs.
         const { data: existing } = await supabaseAdmin
           .from("opportunities")
           .select("id")
           .eq("source_id", item.source_id)
-          .single();
-
-        if (existing) continue;
-
-        if (!item.title || item.title.length < 5) continue;
+          .eq("source", "rss")
+          .maybeSingle();
 
         const [embedding, aiSummary] = await Promise.all([
           embedText([item.title, item.description, `Funder: ${item.funder_name}`].join("\n")),
@@ -56,7 +57,13 @@ export const monitorRss = inngest.createFunction(
           if (!isNaN(est.getTime())) deadline = est.toISOString().split("T")[0];
         }
 
-        await supabaseAdmin.from("opportunities").insert({
+        // RSS never gives us a real deadline (only an estimate derived from
+        // pubDate), but we can still recompute expiry once that estimate has
+        // passed — mirrors sync-grants-gov.ts's expiry check.
+        const status = deadline && new Date(deadline) < new Date() ? "expired" : "active";
+
+        // Fields the feed re-provides fresh on every poll — safe to overwrite.
+        const freshFields = {
           title: item.title,
           description: item.description,
           funder_name: item.funder_name,
@@ -66,27 +73,48 @@ export const monitorRss = inngest.createFunction(
           amount_max: null,
           deadline,
           is_rolling_deadline: !deadline,
-          eligibility_types: ["nonprofit_501c3", "any"],
-          focus_areas: [],
           geographic_scope: "national",
           geographic_states: [],
-          source: "rss",
-          source_id: item.source_id,
           source_url: item.link,
           application_url: item.link,
-          status: "active",
+          status,
           ai_summary: aiSummary || null,
           embedding: embedding.length > 0 ? embedding : null,
           ai_enriched_at: aiSummary ? new Date().toISOString() : null,
-        });
+        };
 
-        ingested++;
+        if (existing) {
+          // Don't touch focus_areas/eligibility_types on update — the RSS
+          // feeds never provide real values for these (hardcoded placeholders
+          // at insert time), so leave whatever's there rather than resetting it.
+          await supabaseAdmin
+            .from("opportunities")
+            .update({ ...freshFields, updated_at: new Date().toISOString() })
+            .eq("id", existing.id);
+          updatedCount++;
+        } else {
+          await supabaseAdmin.from("opportunities").insert({
+            ...freshFields,
+            eligibility_types: ["nonprofit_501c3", "any"],
+            focus_areas: [],
+            source: "rss",
+            source_id: item.source_id,
+          });
+          newCount++;
+        }
+
         await sleep(400);
       } catch (e) {
         errors.push(`${item.source_id}: ${e}`);
       }
     }
 
-    return { ok: true, ingested, total: items.length, errors: errors.slice(0, 5) };
+    return {
+      ok: true,
+      ingested: newCount,
+      updated: updatedCount,
+      total: items.length,
+      errors: errors.slice(0, 5),
+    };
   }
 );

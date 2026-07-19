@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Opportunity } from "@/types/opportunity";
 
 interface OpportunityFilters {
   page?: number;
@@ -41,6 +42,36 @@ export function useOpportunities(filters: OpportunityFilters = {}) {
     queryFn: async () => {
       const response = await fetch(`/api/opportunities${queryString ? `?${queryString}` : ""}`);
       return response.json();
+    },
+  });
+}
+
+export interface SubmitOpportunityInput {
+  url: string;
+  funder_name: string;
+  funder_type?: Opportunity["funder_type"];
+  geographic_states?: string[];
+}
+
+export function useSubmitOpportunity() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: SubmitOpportunityInput) => {
+      const response = await fetch("/api/opportunities/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error ?? "Failed to submit grant");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pipeline"] });
+      queryClient.invalidateQueries({ queryKey: ["opportunities"] });
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
     },
   });
 }

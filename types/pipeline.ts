@@ -13,4 +13,5 @@ export interface PipelineItem {
     | "withdrawn";
   notes?: string | null;
   deadline?: string | null;
+  opportunity?: { title: string; funder_name: string } | null;
 }

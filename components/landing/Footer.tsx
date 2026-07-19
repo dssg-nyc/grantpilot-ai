@@ -1,25 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { Landmark, ArrowUpRight } from "lucide-react";
 
 const links = {
   Product: [
     { label: "Features", href: "#features" },
     { label: "How It Works", href: "#how-it-works" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "Changelog", href: "/changelog" },
+    { label: "Log In", href: "/login" },
+    { label: "Sign Up", href: "/signup" },
   ],
-  Resources: [
-    { label: "Grant Writing Guide", href: "/resources/grant-writing" },
-    { label: "Nonprofit Blog", href: "/blog" },
-    { label: "API Docs", href: "/docs" },
-    { label: "Support", href: "/support" },
-  ],
-  Company: [
-    { label: "About", href: "/about" },
-    { label: "Careers", href: "/careers" },
-    { label: "Contact", href: "/contact" },
-    { label: "Press", href: "/press" },
+  "NYC DSSG Ecosystem": [
+    { label: "About NYC DSSG", href: "https://www.nyc-dssg.org", external: true },
+    { label: "Get Involved", href: "https://www.nyc-dssg.org", external: true },
+    { label: "Other DSSG Projects", href: "https://www.nyc-dssg.org", external: true },
   ],
 };
 
@@ -27,17 +21,44 @@ export default function Footer() {
   return (
     <footer className="border-t border-slate-100 bg-white px-6 py-16 md:px-10">
       <div className="mx-auto max-w-6xl">
+        {/* DSSG ecosystem strip */}
+        <a
+          href="https://www.nyc-dssg.org"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group mb-14 flex flex-col items-start justify-between gap-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-6 sm:flex-row sm:items-center"
+        >
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-blue-700">
+              Built within the NYC DSSG ecosystem
+            </p>
+            <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-slate-600">
+              GrantPilot AI is part of{" "}
+              <span className="font-semibold text-slate-900">
+                NYC Data Science for Social Good (DSSG)
+              </span>
+              , a community of technologists and data scientists doing pro
+              bono IT, data, and AI consulting for nonprofits in New York
+              City.
+            </p>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors group-hover:bg-blue-500">
+            Visit nyc-dssg.org
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </span>
+        </a>
+
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand column */}
-          <div>
-            <a href="/" className="inline-flex items-center gap-2.5 group">
+          <div className="lg:col-span-2">
+            <Link href="/" className="inline-flex items-center gap-2.5 group">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-sm shadow-blue-200 transition-shadow duration-200 group-hover:shadow-blue-300">
                 <Landmark className="h-4 w-4 text-white" />
               </div>
               <span className="text-lg font-bold text-slate-900 tracking-tight">
                 GrantPilot AI
               </span>
-            </a>
+            </Link>
             <p className="mt-4 text-sm leading-relaxed text-slate-500 max-w-xs">
               AI-powered grant discovery and pipeline management for
               mission-driven nonprofits.
@@ -62,6 +83,8 @@ export default function Footer() {
                   <li key={item.label}>
                     <a
                       href={item.href}
+                      target={"external" in item && item.external ? "_blank" : undefined}
+                      rel={"external" in item && item.external ? "noopener noreferrer" : undefined}
                       className="group inline-flex items-center gap-1 text-sm text-slate-500 transition-colors duration-150 hover:text-slate-900"
                     >
                       {item.label}
@@ -81,22 +104,17 @@ export default function Footer() {
               <Landmark className="h-2.5 w-2.5 text-white" />
             </div>
             <p className="text-sm text-slate-400">
-              &copy; 2026 GrantPilot AI. All rights reserved.
+              &copy; 2026 GrantPilot AI &middot; Part of the{" "}
+              <a
+                href="https://www.nyc-dssg.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline decoration-slate-300 underline-offset-2 hover:text-slate-600"
+              >
+                NYC DSSG
+              </a>{" "}
+              ecosystem
             </p>
-          </div>
-          <div className="flex items-center gap-6">
-            <a
-              href="/privacy"
-              className="text-sm text-slate-400 transition-colors duration-150 hover:text-slate-700"
-            >
-              Privacy Policy
-            </a>
-            <a
-              href="/terms"
-              className="text-sm text-slate-400 transition-colors duration-150 hover:text-slate-700"
-            >
-              Terms of Service
-            </a>
           </div>
         </div>
       </div>

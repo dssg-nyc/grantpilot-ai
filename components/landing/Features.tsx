@@ -80,7 +80,7 @@ export default function Features() {
           <div className="mb-4 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-blue-600">
             Features
           </div>
-          <h2 className="text-3xl font-black tracking-tight text-slate-900 md:text-5xl">
+          <h2 className="font-display text-3xl font-bold tracking-tight text-slate-900 md:text-5xl">
             Everything your grant team needs
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-500 leading-relaxed">

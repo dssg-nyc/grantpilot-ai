@@ -2,6 +2,7 @@ import { inngest } from "@/inngest/client";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { fetchGrantsGovOpportunities, fetchGrantDetails } from "@/lib/data-sources/grants-gov";
 import { embedTexts } from "@/lib/voyage/embeddings";
+import { FOCUS_AREA_TAXONOMY } from "@/lib/utils/taxonomy";
 import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -50,21 +51,57 @@ function parseEligibility(raw: string[] | undefined): string[] {
   return raw.map((e) => map[e] ?? "nonprofit_other").filter(Boolean);
 }
 
-async function generateAISummary(title: string, description: string): Promise<string> {
+interface AIEnrichment {
+  summary: string;
+  focusAreas: string[];
+}
+
+const EMPTY_ENRICHMENT: AIEnrichment = { summary: "", focusAreas: [] };
+
+// One combined call (summary + focus-area classification) instead of two —
+// same taxonomy list used by profile extraction and the onboarding wizard
+// (lib/utils/taxonomy.ts), so opportunity.focus_areas can actually overlap
+// with an org's primary_focus_areas in matching and in the Opportunities
+// filter UI. Before this, every grants.gov opportunity stored focus_areas
+// as a hardcoded empty array, which silently zeroed the focus-area
+// component of every match score and made the focus-area filter always
+// return zero results.
+async function enrichWithAI(title: string, description: string): Promise<AIEnrichment> {
+  if (!description) return EMPTY_ENRICHMENT;
   try {
     const resp = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 150,
+      max_tokens: 250,
       messages: [
         {
           role: "user",
-          content: `Write a 2-sentence plain-English summary of this grant opportunity. Be specific about who should apply and what it funds.\n\nTitle: ${title}\n\nDescription: ${description.substring(0, 1000)}\n\nSummary:`,
+          content: `You are classifying a US grant opportunity for a nonprofit funding platform. Respond in valid JSON only, no preamble.
+
+Title: ${title}
+
+Description: ${description.substring(0, 1500)}
+
+RESPOND ONLY WITH:
+{
+  "summary": <2-sentence plain-English summary — be specific about who should apply and what it funds>,
+  "focus_areas": <array of 1-3 focus areas from this exact list: ${JSON.stringify(FOCUS_AREA_TAXONOMY)}>
+}`,
         },
       ],
     });
-    return resp.content[0]?.type === "text" ? resp.content[0].text.trim() : "";
+    const text = resp.content[0]?.type === "text" ? resp.content[0].text.trim() : "";
+    const jsonText = text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    const parsed = JSON.parse(jsonText);
+    const validAreas = new Set<string>(FOCUS_AREA_TAXONOMY);
+    const focusAreas = Array.isArray(parsed.focus_areas)
+      ? parsed.focus_areas.filter((a: unknown): a is string => typeof a === "string" && validAreas.has(a))
+      : [];
+    return {
+      summary: typeof parsed.summary === "string" ? parsed.summary.trim() : "",
+      focusAreas,
+    };
   } catch {
-    return "";
+    return EMPTY_ENRICHMENT;
   }
 }
 
@@ -124,16 +161,16 @@ export const syncGrantsGov = inngest.createFunction(
           ),
         );
 
-        // 3. AI summaries with bounded concurrency (respect Anthropic limits).
-        const summaries = await mapWithConcurrency(prepared, 5, (p) =>
-          p.description ? generateAISummary(p.raw.title, p.description) : Promise.resolve(""),
+        // 3. AI summary + focus-area classification, bounded concurrency (respect Anthropic limits).
+        const enrichments = await mapWithConcurrency(prepared, 5, (p) =>
+          enrichWithAI(p.raw.title, p.description),
         );
 
         // 4. Store (upsert by source + source_id).
         for (let i = 0; i < prepared.length; i++) {
           const p = prepared[i];
           try {
-            const aiSummary = summaries[i];
+            const aiSummary = enrichments[i].summary;
             const embedding = embeddings[i] ?? [];
             const opp = {
               title: p.raw.title,
@@ -151,7 +188,7 @@ export const syncGrantsGov = inngest.createFunction(
                 : null,
               is_rolling_deadline: !p.raw.closeDate,
               eligibility_types: p.elig,
-              focus_areas: [] as string[],
+              focus_areas: enrichments[i].focusAreas,
               geographic_scope: "national",
               geographic_states: [] as string[],
               source: "grants_gov",

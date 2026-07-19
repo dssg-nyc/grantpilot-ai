@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   X, ExternalLink, Calendar, DollarSign, Globe, Building2,
   Tag, ClipboardList, Sparkles, ArrowUpRight,
@@ -60,22 +60,32 @@ export default function OpportunityDetail({ id, onClose, onAddToPipeline, pipeli
   const [opp, setOpp] = useState<Opportunity | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Captured once on mount rather than read via Date.now() during render —
+  // the React Compiler flags Date.now() as an impure render-time call.
+  const [now] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!id) { setOpp(null); return; }
-    setLoading(true);
-    setError(null);
-    fetch(`/api/opportunities/${id}`)
+    // When `id` clears, we don't need to reset `opp` here — the component
+    // renders null below whenever `id` is falsy, so any stale data is never
+    // shown, and a subsequent fetch overwrites it once a new id arrives.
+    if (!id) return;
+    Promise.resolve()
+      .then(() => { setLoading(true); setError(null); })
+      .then(() => fetch(`/api/opportunities/${id}`))
       .then((r) => r.json())
       .then((data) => { setOpp(data.data ?? data); setLoading(false); })
       .catch(() => { setError("Failed to load."); setLoading(false); });
   }, [id]);
 
-  if (!id) return null;
+  const daysLeft = useMemo(
+    () =>
+      opp?.deadline
+        ? Math.ceil((new Date(opp.deadline).getTime() - now) / 86_400_000)
+        : null,
+    [opp, now],
+  );
 
-  const daysLeft = opp?.deadline
-    ? Math.ceil((new Date(opp.deadline).getTime() - Date.now()) / 86_400_000)
-    : null;
+  if (!id) return null;
   const urgent = daysLeft !== null && daysLeft <= 14 && daysLeft >= 0;
   const badgeClass = FUNDER_COLORS[opp?.funder_type ?? ""] ?? "bg-slate-100 text-slate-600 border-slate-200";
 

@@ -91,10 +91,10 @@ export default function FocusAreasStep({ data, onChange }: StepProps) {
                 key={area}
                 className={`flex cursor-pointer items-center gap-2 rounded-lg border p-2.5 text-sm transition ${
                   isSelected
-                    ? "border-blue-600 bg-blue-50 text-blue-800"
+                    ? "border-blue-500 bg-blue-50 text-blue-700"
                     : isDisabled
-                    ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50"
+                    ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50/50"
                 }`}
               >
                 <input
@@ -133,8 +133,8 @@ export default function FocusAreasStep({ data, onChange }: StepProps) {
                   isPrimary
                     ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
                     : isSelected
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-800"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50"
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:bg-emerald-50/50"
                 }`}
               >
                 <input
@@ -170,8 +170,8 @@ export default function FocusAreasStep({ data, onChange }: StepProps) {
                 key={sdg.number}
                 className={`flex cursor-pointer items-center gap-2.5 rounded-lg border p-2.5 text-sm transition ${
                   isSelected
-                    ? "border-amber-500 bg-amber-50 text-amber-900"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50"
+                    ? "border-amber-500 bg-amber-50 text-amber-800"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-amber-300 hover:bg-amber-50/50"
                 }`}
               >
                 <input
@@ -180,7 +180,7 @@ export default function FocusAreasStep({ data, onChange }: StepProps) {
                   onChange={() => toggleSdg(sdg.number)}
                   className="h-4 w-4 shrink-0 rounded accent-amber-600"
                 />
-                <span className="font-medium text-xs shrink-0 w-5 text-right text-slate-500">
+                <span className="font-medium text-xs shrink-0 w-5 text-right text-slate-400">
                   {sdg.number}.
                 </span>
                 <span className="leading-tight">{sdg.name}</span>

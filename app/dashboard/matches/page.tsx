@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useMatches, useUpdateMatchStatus } from "@/hooks/useMatches";
 import { useAddToPipeline, usePipeline } from "@/hooks/usePipeline";
@@ -8,7 +8,7 @@ import { useProfile } from "@/hooks/useProfile";
 import {
   ExternalLink, Bookmark, Plus, Check, ChevronDown, ChevronUp,
   CheckCircle2, XCircle, Lightbulb, DollarSign, Calendar,
-  Sparkles, TrendingUp, Clock, Loader2,
+  Sparkles, TrendingUp, Clock, Loader2, Zap, X,
 } from "lucide-react";
 
 // ─── Score Ring ───────────────────────────────────────────────────────────────
@@ -43,12 +43,16 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 // ─── Score breakdown bars ─────────────────────────────────────────────────────
+// Only the dimensions that actually vary across surfaced matches get a
+// weighted progress bar. `eligibility` and `geographic` are hard gates
+// (see lib/matching/score-calculator.ts) — every match that reaches this UI
+// has already passed both, so they're always 100% and would just render as
+// two permanently-full bars implying differentiation that isn't there.
+// They're shown instead as a simple pass/fail confirmation line below.
 const DIMENSION_WEIGHTS: { key: keyof NonNullable<MatchItem["match"]["score_breakdown"]>; label: string; weight: number }[] = [
-  { key: "semantic", label: "Semantic fit", weight: 35 },
-  { key: "focus", label: "Focus overlap", weight: 25 },
-  { key: "eligibility", label: "Eligibility", weight: 20 },
-  { key: "geographic", label: "Geography", weight: 10 },
-  { key: "size", label: "Grant size fit", weight: 10 },
+  { key: "semantic", label: "Semantic fit", weight: 50 },
+  { key: "focus", label: "Focus overlap", weight: 35 },
+  { key: "size", label: "Grant size fit", weight: 15 },
 ];
 
 function ScoreBreakdown({ breakdown }: { breakdown: NonNullable<MatchItem["match"]["score_breakdown"]> }) {
@@ -72,6 +76,14 @@ function ScoreBreakdown({ breakdown }: { breakdown: NonNullable<MatchItem["match
             </div>
           );
         })}
+      </div>
+      <div className="mt-2.5 flex items-center gap-3 text-[11px] text-slate-500">
+        <span className="flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Eligible
+        </span>
+        <span className="flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3 text-emerald-500" /> In service area
+        </span>
       </div>
     </div>
   );
@@ -136,6 +148,9 @@ function MatchCard({ item, inPipeline }: { item: MatchItem; inPipeline: boolean 
   const addToPipeline = useAddToPipeline();
   const updateStatus = useUpdateMatchStatus();
   const [added, setAdded] = useState(false);
+  // Captured once on mount rather than read via Date.now() during render —
+  // the React Compiler flags Date.now() as an impure render-time call.
+  const [now] = useState(() => Date.now());
   const opp = item.opportunity;
   const match = item.match;
   const isSaved = match.status === "saved";
@@ -153,9 +168,13 @@ function MatchCard({ item, inPipeline }: { item: MatchItem; inPipeline: boolean 
     prob >= 60 ? "text-emerald-600 bg-emerald-50" :
     prob >= 35 ? "text-amber-600 bg-amber-50"   : "text-red-600 bg-red-50";
 
-  const daysLeft = opp.deadline
-    ? Math.ceil((new Date(opp.deadline).getTime() - Date.now()) / 86_400_000)
-    : null;
+  const daysLeft = useMemo(
+    () =>
+      opp.deadline
+        ? Math.ceil((new Date(opp.deadline).getTime() - now) / 86_400_000)
+        : null,
+    [opp.deadline, now],
+  );
   const urgent = daysLeft !== null && daysLeft <= 14 && daysLeft >= 0;
 
   return (
@@ -349,6 +368,33 @@ function MatchCard({ item, inPipeline }: { item: MatchItem; inPipeline: boolean 
   );
 }
 
+// ─── Upgrade banner (shown when the API reports plan_limited results) ─────────
+function UpgradeBanner({
+  maxVisibleMatches, totalMatches, onDismiss,
+}: {
+  maxVisibleMatches: number; totalMatches: number; onDismiss: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+      <Zap className="h-4 w-4 shrink-0 text-blue-500" />
+      <p className="flex-1">
+        Showing your top {maxVisibleMatches} of {totalMatches} matches —{" "}
+        <Link href="/dashboard/settings" className="font-semibold underline hover:text-blue-900">
+          Upgrade to Pro
+        </Link>{" "}
+        to see them all.
+      </p>
+      <button
+        onClick={onDismiss}
+        className="shrink-0 rounded-lg p-1 text-blue-400 transition hover:bg-blue-100 hover:text-blue-600"
+        aria-label="Dismiss"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
 // ─── Stats Mini ───────────────────────────────────────────────────────────────
 function StatPill({
   icon: Icon, label, value, color,
@@ -376,11 +422,14 @@ const STATUS_TABS = [
 
 export default function MatchesPage() {
   const [activeTab, setActiveTab] = useState("");
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const { data, isLoading, error } = useMatches();
   const { data: pipeline } = usePipeline();
   const { data: profile } = useProfile();
   const matches = (data?.data ?? []) as MatchItem[];
   const stats = data?.stats;
+  const planLimited = data?.plan_limited === true;
+  const totalMatches = data?.total_matches;
 
   // A profile is "ready for matching" once an org exists with enough completeness.
   const hasProfile = !!profile?.organization && (profile?.profile_completeness ?? 0) >= 30;
@@ -403,6 +452,15 @@ export default function MatchesPage() {
           AI-curated grants ranked by organizational fit
         </p>
       </div>
+
+      {/* Upgrade banner — shown when /api/matches reports plan_limited results */}
+      {planLimited && !bannerDismissed && totalMatches !== undefined && (
+        <UpgradeBanner
+          maxVisibleMatches={matches.length}
+          totalMatches={totalMatches}
+          onDismiss={() => setBannerDismissed(true)}
+        />
+      )}
 
       {/* Stats row */}
       {stats && (

@@ -28,7 +28,7 @@ async function generateAISummary(title: string, description: string): Promise<st
 
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}` && process.env.NODE_ENV === "production") {
+  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   // Defense in depth: even with a leaked secret, cap how often this expensive

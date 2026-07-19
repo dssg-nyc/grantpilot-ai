@@ -88,7 +88,7 @@ export default function MissionStep({ data, onChange }: StepProps) {
       <div>
         <h2 className="text-lg font-semibold text-slate-900">Mission & Beneficiaries</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Describe your organization's purpose and who you serve.
+          Describe your organization&apos;s purpose and who you serve.
         </p>
       </div>
 
@@ -104,7 +104,7 @@ export default function MissionStep({ data, onChange }: StepProps) {
           value={missionText}
           onChange={(e) => onChange({ mission_statement: e.target.value })}
           placeholder="Describe your organization's mission, vision, and core purpose…"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y min-h-[120px]"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y min-h-[120px]"
         />
         <div className="flex items-center justify-between">
           <span className={`text-xs ${charsLeft < 50 ? "text-amber-600" : "text-slate-400"}`}>
@@ -141,12 +141,12 @@ export default function MissionStep({ data, onChange }: StepProps) {
           </p>
           {aiPreview.focus_areas && aiPreview.focus_areas.length > 0 && (
             <div>
-              <p className="mb-1.5 text-xs font-medium text-violet-600">Detected Focus Areas</p>
+              <p className="mb-1.5 text-xs font-medium text-violet-700">Detected Focus Areas</p>
               <div className="flex flex-wrap gap-1.5">
                 {aiPreview.focus_areas.map((area) => (
                   <span
                     key={area}
-                    className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-800"
+                    className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-700"
                   >
                     {area}
                   </span>
@@ -156,12 +156,12 @@ export default function MissionStep({ data, onChange }: StepProps) {
           )}
           {aiPreview.beneficiaries && aiPreview.beneficiaries.length > 0 && (
             <div>
-              <p className="mb-1.5 text-xs font-medium text-violet-600">Detected Beneficiaries</p>
+              <p className="mb-1.5 text-xs font-medium text-violet-700">Detected Beneficiaries</p>
               <div className="flex flex-wrap gap-1.5">
                 {aiPreview.beneficiaries.map((b) => (
                   <span
                     key={b}
-                    className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800"
+                    className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700"
                   >
                     {b}
                   </span>
@@ -189,8 +189,8 @@ export default function MissionStep({ data, onChange }: StepProps) {
                 onClick={() => toggleBeneficiary(b)}
                 className={`rounded-full border px-3 py-1 text-sm font-medium transition ${
                   selected
-                    ? "border-blue-600 bg-blue-600 text-white"
-                    : "border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:text-blue-600"
+                    ? "border-blue-500 bg-blue-600 text-white"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-600"
                 }`}
               >
                 {selected && (

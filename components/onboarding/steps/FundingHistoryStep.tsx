@@ -120,8 +120,8 @@ export default function FundingHistoryStep({ data, onChange }: StepProps) {
                     key={type}
                     className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
                       checked
-                        ? "border-blue-600 bg-blue-50 text-blue-800"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-blue-300"
+                        ? "border-blue-500 bg-blue-50 text-blue-800"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-blue-300"
                     }`}
                   >
                     <input
@@ -180,7 +180,7 @@ export default function FundingHistoryStep({ data, onChange }: StepProps) {
           <button
             type="button"
             onClick={addProgram}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-600 px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-50"
           >
             <Plus className="h-3.5 w-3.5" />
             Add Program
@@ -188,8 +188,8 @@ export default function FundingHistoryStep({ data, onChange }: StepProps) {
         </div>
 
         {programs.length === 0 && (
-          <div className="rounded-lg border border-dashed border-slate-300 py-8 text-center text-sm text-slate-400">
-            No programs added yet. Click "Add Program" to get started.
+          <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">
+            No programs added yet. Click &quot;Add Program&quot; to get started.
           </div>
         )}
 
@@ -200,13 +200,13 @@ export default function FundingHistoryStep({ data, onChange }: StepProps) {
               className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Program {index + 1}
                 </span>
                 <button
                   type="button"
                   onClick={() => removeProgram(index)}
-                  className="rounded p-1 text-slate-400 transition hover:bg-red-50 hover:text-red-500"
+                  className="rounded p-1 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
                   aria-label="Remove program"
                 >
                   <Trash2 className="h-4 w-4" />

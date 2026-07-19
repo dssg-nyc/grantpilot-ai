@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getPlanLimits, isPro } from "@/lib/billing/plans";
 
 export async function GET(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -20,6 +21,8 @@ export async function GET(request: Request) {
       data: [],
       pagination: { page: 1, limit: 20, total: 0, has_more: false },
       stats: { total_matches: 0, strong_matches: 0, new_since_last_visit: 0 },
+      total_matches: 0,
+      plan_limited: false,
     });
   }
 
@@ -30,6 +33,14 @@ export async function GET(request: Request) {
   const status = searchParams.get("status");
   const minScore = parseInt(searchParams.get("min_score") ?? "0");
 
+  const { data: orgRow } = await supabase
+    .from("organizations")
+    .select("plan")
+    .eq("id", userData.org_id)
+    .single();
+  const planLimits = getPlanLimits(orgRow?.plan);
+  const proPlan = isPro(orgRow?.plan);
+
   let query = supabase
     .from("matches")
     .select("*, opportunity:opportunities(*)", { count: "exact" })
@@ -39,12 +50,26 @@ export async function GET(request: Request) {
 
   if (status) query = query.eq("status", status);
   query = query.range(offset, offset + limit - 1);
+  // Free tier only ever gets to see the org's best N matches (already ordered
+  // by match_score above) — this caps visible results, matches are still
+  // fully computed and stored for everyone.
+  if (!proPlan) query = query.limit(planLimits.maxVisibleMatches);
 
   const { data, error, count } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // Total matches for the org regardless of the status/min_score filters
+  // above, used purely to tell a free-tier org how many matches exist beyond
+  // what they're currently allowed to see.
+  const { count: allMatchesCount } = await supabase
+    .from("matches")
+    .select("id", { count: "exact", head: true })
+    .eq("org_id", userData.org_id);
+  const totalMatches = allMatchesCount ?? 0;
+  const planLimited = !proPlan && totalMatches > planLimits.maxVisibleMatches;
 
   const { count: strongCount } = await supabase
     .from("matches")
@@ -100,5 +125,7 @@ export async function GET(request: Request) {
     data: formatted,
     pagination: { page, limit, total: count ?? 0, has_more: (count ?? 0) > offset + limit },
     stats: { total_matches: count ?? 0, strong_matches: strongCount ?? 0, new_since_last_visit: newCount ?? 0 },
+    total_matches: totalMatches,
+    plan_limited: planLimited,
   });
 }

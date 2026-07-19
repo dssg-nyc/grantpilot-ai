@@ -48,7 +48,7 @@ export default function OperationalStep({ data, onChange }: StepProps) {
       <div>
         <h2 className="text-lg font-semibold text-slate-900">Operations & Capacity</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Help us understand your organization's size and geographic reach.
+          Help us understand your organization&apos;s size and geographic reach.
         </p>
       </div>
 
@@ -61,8 +61,8 @@ export default function OperationalStep({ data, onChange }: StepProps) {
               key={range.value}
               className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition ${
                 data.annual_budget_range === range.value
-                  ? "border-blue-600 bg-blue-50 text-blue-900"
-                  : "border-slate-200 bg-white text-slate-700 hover:border-blue-300"
+                  ? "border-blue-500 bg-blue-50 text-blue-800"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-blue-300"
               }`}
             >
               <input
@@ -94,7 +94,7 @@ export default function OperationalStep({ data, onChange }: StepProps) {
               onChange({ years_in_operation: e.target.value ? parseInt(e.target.value, 10) : undefined })
             }
             placeholder="e.g. 5"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
         <div className="space-y-1">
@@ -110,7 +110,7 @@ export default function OperationalStep({ data, onChange }: StepProps) {
               onChange({ staff_full_time: e.target.value ? parseInt(e.target.value, 10) : undefined })
             }
             placeholder="0"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
         <div className="space-y-1">
@@ -126,7 +126,7 @@ export default function OperationalStep({ data, onChange }: StepProps) {
               onChange({ staff_part_time: e.target.value ? parseInt(e.target.value, 10) : undefined })
             }
             placeholder="0"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
       </div>
@@ -140,7 +140,7 @@ export default function OperationalStep({ data, onChange }: StepProps) {
               key={opt.value}
               className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${
                 data.geographic_service_area === opt.value
-                  ? "border-blue-600 bg-blue-50"
+                  ? "border-blue-500 bg-blue-50"
                   : "border-slate-200 bg-white hover:border-blue-300"
               }`}
             >
@@ -157,7 +157,7 @@ export default function OperationalStep({ data, onChange }: StepProps) {
                 className="mt-0.5 h-4 w-4 accent-blue-600"
               />
               <div>
-                <p className="text-sm font-medium text-slate-800">{opt.label}</p>
+                <p className="text-sm font-medium text-slate-900">{opt.label}</p>
                 <p className="text-xs text-slate-500">{opt.description}</p>
               </div>
             </label>
@@ -186,7 +186,7 @@ export default function OperationalStep({ data, onChange }: StepProps) {
                     className={`rounded px-2 py-1 text-xs font-medium transition ${
                       isSelected
                         ? "bg-blue-600 text-white"
-                        : "bg-slate-100 text-slate-700 hover:bg-blue-100 hover:text-blue-700"
+                        : "bg-slate-100 text-slate-500 hover:bg-blue-50 hover:text-blue-700"
                     }`}
                   >
                     {state}

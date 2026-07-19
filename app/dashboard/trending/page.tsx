@@ -2,7 +2,7 @@
 
 import { useOpportunities } from "@/hooks/useOpportunities";
 import OpportunityCard from "@/components/opportunities/OpportunityCard";
-import { TrendingUp, Flame } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import type { Opportunity } from "@/types/opportunity";
 
 export default function TrendingPage() {

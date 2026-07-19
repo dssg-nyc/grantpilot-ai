@@ -14,7 +14,6 @@ for (const line of readFileSync(resolve(process.cwd(), ".env.local"), "utf8").sp
 
 const GRANT_LIMIT = Number(process.env.GRANT_LIMIT ?? 25);
 const log = (...a: unknown[]) => console.log(...a);
-const stripHtml = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
 const eligMap: Record<string, string> = {
   "25": "nonprofit_501c3", "20": "educational", "12": "government",

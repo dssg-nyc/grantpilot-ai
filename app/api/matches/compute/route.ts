@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { computeMatchRowsForOrg } from "@/lib/matching/compute";
 import type { OrgProfile } from "@/types/profile";
+import { rateLimitGuard, strictRateLimiter } from "@/lib/redis/rate-limiter";
 
 async function computeMatchesForOrg(org: Record<string, unknown>) {
   const matchRows = await computeMatchRowsForOrg(org as unknown as OrgProfile & { id: string });
@@ -36,7 +37,10 @@ export async function GET(request: Request) {
   return computeMatchesForOrg(org as Record<string, unknown>);
 }
 
-export async function POST() {
+export async function POST(request: Request) {
+  const limited = await rateLimitGuard(request, "matches-compute", strictRateLimiter);
+  if (limited) return limited;
+
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

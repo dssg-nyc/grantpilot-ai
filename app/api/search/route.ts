@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { embedText } from "@/lib/voyage/embeddings";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { rateLimitGuard, strictRateLimiter } from "@/lib/redis/rate-limiter";
 
 export async function GET(request: Request) {
+  const limited = await rateLimitGuard(request, "search", strictRateLimiter);
+  if (limited) return limited;
+
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q");
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "10"), 50);

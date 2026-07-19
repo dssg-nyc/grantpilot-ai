@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { pipelineCreateSchema } from "@/lib/utils/validators";
+import { getPlanLimits } from "@/lib/billing/plans";
 
 async function getOrgId() {
   const supabase = await createSupabaseServerClient();
@@ -28,12 +30,23 @@ export async function POST(request: Request) {
   const { supabase, orgId } = await getOrgId();
   if (!orgId) return NextResponse.json({ error: "Unauthorized or no org" }, { status: 401 });
 
-  let body: Record<string, unknown>;
-  try { body = await request.json(); } catch {
+  let rawBody: unknown;
+  try { rawBody = await request.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const opportunityId = typeof body.opportunity_id === "string" ? body.opportunity_id : null;
+  const parsed = pipelineCreateSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid request" },
+      { status: 400 },
+    );
+  }
+  // Validated + allow-listed: unexpected/forbidden fields are stripped.
+  // opportunity_id is intentionally optional here (quick-add flow).
+  const body = parsed.data;
+
+  const opportunityId = body.opportunity_id ?? null;
 
   // Idempotent: a grant can only be in the org's active pipeline once.
   if (opportunityId) {
@@ -45,6 +58,30 @@ export async function POST(request: Request) {
       .is("deleted_at", null)
       .maybeSingle();
     if (existing) return NextResponse.json(existing, { status: 200 });
+  }
+
+  // Free-tier cap on active pipeline items. Only reached when the item above
+  // isn't already an idempotent re-add/dedupe of an existing pipeline row.
+  const { data: orgRow } = await supabase
+    .from("organizations")
+    .select("plan")
+    .eq("id", orgId)
+    .single();
+  const limits = getPlanLimits(orgRow?.plan);
+  const { count: activeCount } = await supabase
+    .from("pipeline_items")
+    .select("id", { count: "exact", head: true })
+    .eq("org_id", orgId)
+    .is("deleted_at", null);
+  if ((activeCount ?? 0) >= limits.maxActivePipelineItems) {
+    return NextResponse.json(
+      {
+        error:
+          "You've reached the free plan's limit of 5 active pipeline items. Upgrade to Pro for unlimited.",
+        code: "plan_limit_pipeline_items",
+      },
+      { status: 403 },
+    );
   }
 
   const { data, error } = await supabase

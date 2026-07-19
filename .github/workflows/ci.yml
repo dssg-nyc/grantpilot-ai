@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      # Placeholder values so `next build` can statically evaluate
+      # process.env.X! reads without throwing. Not real credentials —
+      # nothing at build time makes outbound calls to these services.
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+      SUPABASE_JWT_SECRET: placeholder-jwt-secret
+      ANTHROPIC_API_KEY: sk-ant-placeholder
+      VOYAGE_API_KEY: pa-placeholder
+      FIRECRAWL_API_KEY: fc-placeholder
+      INNGEST_EVENT_KEY: placeholder-event-key
+      INNGEST_SIGNING_KEY: placeholder-signing-key
+      UPSTASH_REDIS_REST_URL: https://placeholder.upstash.io
+      UPSTASH_REDIS_REST_TOKEN: placeholder-token
+      RESEND_API_KEY: re_placeholder
+      EMAIL_FROM: test@example.com
+      SAM_GOV_API_KEY: placeholder-sam-key
+      NEXT_PUBLIC_APP_URL: http://localhost:3030
+      NEXT_PUBLIC_APP_NAME: GrantPilot AI
+      CRON_SECRET: placeholder-cron-secret
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build

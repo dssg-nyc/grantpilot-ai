@@ -140,15 +140,18 @@ export default function OnboardingWizard({ initialData }: { initialData?: Partia
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex">
+    <div className="min-h-screen bg-slate-50 flex">
       {/* Left panel */}
-      <div className="hidden lg:flex w-72 xl:w-80 flex-col border-r border-white/5 p-8">
+      <div className="hidden lg:flex w-72 xl:w-80 flex-col border-r border-slate-200 bg-white p-8">
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-12">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 shadow-lg shadow-blue-600/30">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-700 to-blue-900 shadow-sm">
             <Landmark className="h-4 w-4 text-white" />
           </div>
-          <span className="text-sm font-bold text-white">GrantPilot AI</span>
+          <div className="leading-none">
+            <span className="block text-sm font-bold text-slate-900">GrantPilot AI</span>
+            <span className="block mt-0.5 text-[10px] font-medium text-slate-400">by DSSG NYC</span>
+          </div>
         </div>
 
         {/* Step list */}
@@ -160,21 +163,21 @@ export default function OnboardingWizard({ initialData }: { initialData?: Partia
               <div
                 key={step.label}
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition ${
-                  current ? "bg-white/10" : done ? "opacity-70" : "opacity-30"
+                  current ? "bg-blue-50" : done ? "opacity-70" : "opacity-40"
                 }`}
               >
                 <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition ${
                   done    ? "bg-emerald-500 text-white" :
-                  current ? "bg-blue-500 text-white ring-2 ring-blue-400/30" :
-                            "bg-white/10 text-white/50"
+                  current ? "bg-blue-600 text-white ring-2 ring-blue-200" :
+                            "bg-slate-100 text-slate-400"
                 }`}>
                   {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}
                 </div>
                 <div>
-                  <p className={`text-sm font-semibold ${current ? "text-white" : "text-white/70"}`}>
+                  <p className={`text-sm font-semibold ${current ? "text-slate-900" : "text-slate-600"}`}>
                     {step.label}
                   </p>
-                  <p className="text-[11px] text-white/40 leading-tight">{step.description}</p>
+                  <p className="text-[11px] text-slate-400 leading-tight">{step.description}</p>
                 </div>
               </div>
             );
@@ -184,12 +187,12 @@ export default function OnboardingWizard({ initialData }: { initialData?: Partia
         {/* Progress */}
         <div className="mt-8">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-white/40">Profile completion</span>
-            <span className="text-xs font-bold text-white/70">{progressPct}%</span>
+            <span className="text-xs text-slate-400">Profile completion</span>
+            <span className="text-xs font-bold text-slate-600">{progressPct}%</span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-white/10">
+          <div className="h-1.5 w-full rounded-full bg-slate-100">
             <div
-              className="h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-400 transition-all duration-500"
+              className="h-1.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-500 transition-all duration-500"
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -199,20 +202,20 @@ export default function OnboardingWizard({ initialData }: { initialData?: Partia
       {/* Right panel — form */}
       <div className="flex flex-1 flex-col">
         {/* Mobile header */}
-        <div className="flex items-center gap-3 border-b border-white/5 px-6 py-4 lg:hidden">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600">
+        <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-6 py-4 lg:hidden">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-700 to-blue-900">
             <Landmark className="h-3.5 w-3.5 text-white" />
           </div>
-          <span className="text-sm font-bold text-white">GrantPilot AI</span>
-          <span className="ml-auto text-xs text-white/40">
+          <span className="text-sm font-bold text-slate-900">GrantPilot AI</span>
+          <span className="ml-auto text-xs text-slate-400">
             Step {currentStep + 1} of {STEPS.length}
           </span>
         </div>
 
         {/* Mobile progress bar */}
-        <div className="h-0.5 bg-white/5 lg:hidden">
+        <div className="h-0.5 bg-slate-100 lg:hidden">
           <div
-            className="h-full bg-blue-500 transition-all duration-500"
+            className="h-full bg-blue-600 transition-all duration-500"
             style={{ width: `${progressPct}%` }}
           />
         </div>
@@ -222,23 +225,21 @@ export default function OnboardingWizard({ initialData }: { initialData?: Partia
           <div className="w-full max-w-2xl">
             {/* Step title */}
             <div className="mb-6">
-              <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-1">
+              <p className="text-xs font-semibold uppercase tracking-widest text-blue-700 mb-1">
                 Step {currentStep + 1} of {STEPS.length}
               </p>
-              <h1 className="text-2xl font-bold text-white">{STEPS[currentStep].label}</h1>
-              <p className="mt-1 text-sm text-white/50">{STEPS[currentStep].description}</p>
+              <h1 className="font-display text-2xl font-bold text-slate-900">{STEPS[currentStep].label}</h1>
+              <p className="mt-1 text-sm text-slate-500">{STEPS[currentStep].description}</p>
             </div>
 
             {/* Form card */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6 sm:p-8 shadow-2xl">
-              <div className="[&_label]:text-slate-200 [&_input]:bg-white/10 [&_input]:border-white/10 [&_input]:text-white [&_input::placeholder]:text-white/30 [&_textarea]:bg-white/10 [&_textarea]:border-white/10 [&_textarea]:text-white [&_textarea::placeholder]:text-white/30 [&_select]:bg-slate-800 [&_select]:border-white/10 [&_select]:text-white [&_h2]:text-white [&_h3]:text-white [&_p.text-slate-500]:text-white/50 [&_p.text-slate-600]:text-white/60 [&_p.text-slate-700]:text-white/70">
-                {stepComponents[currentStep]}
-              </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
+              {stepComponents[currentStep]}
             </div>
 
             {/* Error */}
             {submitError && (
-              <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{submitError}</span>
               </div>
@@ -250,7 +251,7 @@ export default function OnboardingWizard({ initialData }: { initialData?: Partia
                 type="button"
                 onClick={handleBack}
                 disabled={currentStep === 0}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Back
@@ -261,7 +262,7 @@ export default function OnboardingWizard({ initialData }: { initialData?: Partia
                   type="button"
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {submitting ? (
                     <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</>
@@ -273,7 +274,7 @@ export default function OnboardingWizard({ initialData }: { initialData?: Partia
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-500"
+                  className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-500"
                 >
                   Continue
                   <ChevronRight className="h-4 w-4" />

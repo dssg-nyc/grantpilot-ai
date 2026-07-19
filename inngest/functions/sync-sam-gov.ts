@@ -44,7 +44,8 @@ export const syncSamGov = inngest.createFunction(
 
     if (!opps.length) return { ok: true, ingested: 0 };
 
-    let ingested = 0;
+    let newCount = 0;
+    let updatedCount = 0;
     const errors: string[] = [];
 
     for (const opp of opps) {
@@ -55,9 +56,7 @@ export const syncSamGov = inngest.createFunction(
           .select("id")
           .eq("source_id", sourceId)
           .eq("source", "sam_gov")
-          .single();
-
-        if (existing) continue;
+          .maybeSingle();
 
         const title = opp.title ?? "SAM.gov Opportunity";
         const description = opp.description ?? "";
@@ -73,7 +72,14 @@ export const syncSamGov = inngest.createFunction(
           if (!isNaN(d.getTime())) deadline = d.toISOString().split("T")[0];
         }
 
-        await supabaseAdmin.from("opportunities").insert({
+        // SAM.gov's own "active" flag is a source-of-truth signal (e.g. an award
+        // was made or the notice was cancelled), but re-derive expiry from the
+        // deadline too so a stale "active" flag can't keep a past-deadline
+        // notice looking open — mirrors sync-grants-gov.ts's expiry check.
+        const isExpired = opp.active !== "Yes" || (deadline !== null && new Date(deadline) < new Date());
+
+        // Fields SAM.gov re-provides fresh on every sync — safe to overwrite.
+        const freshFields = {
           title,
           description,
           funder_name: opp.fullParentPathName?.split(".").pop() ?? "Federal Agency",
@@ -83,27 +89,49 @@ export const syncSamGov = inngest.createFunction(
           amount_max: opp.award?.amount ? parseInt(String(opp.award.amount).replace(/[^0-9]/g, "")) || null : null,
           deadline,
           is_rolling_deadline: !deadline,
-          eligibility_types: ["any"],
-          focus_areas: [],
           geographic_scope: "national",
           geographic_states: [],
-          source: "sam_gov",
-          source_id: sourceId,
           source_url: opp.uiLink,
           application_url: opp.additionalInfoLink ?? opp.uiLink,
-          status: opp.active === "Yes" ? "active" : "expired",
+          status: isExpired ? "expired" : "active",
           ai_summary: aiSummary || null,
           embedding: embedding.length > 0 ? embedding : null,
           ai_enriched_at: aiSummary ? new Date().toISOString() : null,
-        });
+        };
 
-        ingested++;
+        if (existing) {
+          // Don't touch focus_areas/eligibility_types on update — SAM.gov never
+          // provides real values for these (they're hardcoded placeholders at
+          // insert time), so re-writing them here would blow away any later
+          // enrichment without the source actually re-providing fresh data.
+          await supabaseAdmin
+            .from("opportunities")
+            .update({ ...freshFields, updated_at: new Date().toISOString() })
+            .eq("id", existing.id);
+          updatedCount++;
+        } else {
+          await supabaseAdmin.from("opportunities").insert({
+            ...freshFields,
+            eligibility_types: ["any"],
+            focus_areas: [],
+            source: "sam_gov",
+            source_id: sourceId,
+          });
+          newCount++;
+        }
+
         await sleep(400);
       } catch (e) {
         errors.push(`${opp.noticeId}: ${e}`);
       }
     }
 
-    return { ok: true, ingested, total: opps.length, errors: errors.slice(0, 5) };
+    return {
+      ok: true,
+      ingested: newCount,
+      updated: updatedCount,
+      total: opps.length,
+      errors: errors.slice(0, 5),
+    };
   }
 );
