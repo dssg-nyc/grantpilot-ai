@@ -42,10 +42,15 @@ export default function RecentMatches() {
   const { data, isLoading } = useMatches();
   const { data: profile } = useProfile();
   const hasProfile = !!profile?.organization && (profile?.profile_completeness ?? 0) >= 30;
-  const matches = (data?.data ?? []).slice(0, 5) as Array<{
+  // Defence in depth behind the API's inner join: an opportunity hidden by
+  // RLS (expired, or newly restricted) arrives as null, and rendering it
+  // unguarded takes down the entire dashboard rather than one row.
+  const matches = ((data?.data ?? []) as Array<{
     match: { match_score: number; recommended_action?: string; status: string };
-    opportunity: { id: string; title: string; funder_name: string; funder_type: string; source_url?: string };
-  }>;
+    opportunity: { id: string; title: string; funder_name: string; funder_type: string; source_url?: string } | null;
+  }>)
+    .filter((m): m is typeof m & { opportunity: NonNullable<typeof m.opportunity> } => !!m.opportunity)
+    .slice(0, 5);
 
   const FUNDER_COLORS: Record<string, string> = {
     federal_government: "bg-purple-50 text-purple-700",
@@ -113,8 +118,9 @@ export default function RecentMatches() {
       {!isLoading && matches.length > 0 && (
         <ul className="divide-y divide-slate-50">
           {matches.map(({ match, opportunity }) => {
-            const badgeClass = FUNDER_COLORS[opportunity.funder_type] ?? "bg-slate-100 text-slate-600";
-            const funderLabel = opportunity.funder_type
+            const funderType = opportunity.funder_type ?? "other";
+            const badgeClass = FUNDER_COLORS[funderType] ?? "bg-slate-100 text-slate-600";
+            const funderLabel = funderType
               .replace(/_/g, " ")
               .replace(/\b\w/g, (c) => c.toUpperCase());
             return (

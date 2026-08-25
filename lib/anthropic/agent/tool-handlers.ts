@@ -16,7 +16,10 @@ function str(input: Record<string, unknown>, key: string): string | undefined {
   return typeof v === "string" && v.trim() ? v.trim() : undefined;
 }
 
-async function searchOpportunities(ctx: ToolContext, input: Record<string, unknown>) {
+// Exported so the Funding Scout agent can reuse the exact same
+// FTS-then-vector search when checking what the app already has, rather than
+// maintaining a second, divergent copy of that logic.
+export async function searchOpportunities(ctx: ToolContext, input: Record<string, unknown>) {
   const query = str(input, "query");
   const focusAreas = Array.isArray(input.focus_areas) ? (input.focus_areas as string[]) : undefined;
   const funderType = str(input, "funder_type");

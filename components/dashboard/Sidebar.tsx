@@ -14,12 +14,14 @@ import {
   ChevronRight,
   X,
   Bot,
+  Radar,
 } from "lucide-react";
 import { useUIStore } from "@/store/useUIStore";
 
 const NAV = [
   { label: "Dashboard",     href: "/dashboard",                icon: LayoutDashboard },
   { label: "AI Assistant",  href: "/dashboard/assistant",      icon: Bot },
+  { label: "Funding Scout", href: "/dashboard/scout",          icon: Radar },
   { label: "My Matches",    href: "/dashboard/matches",        icon: Sparkles },
   { label: "Opportunities", href: "/dashboard/opportunities",  icon: Search },
   { label: "Pipeline",      href: "/dashboard/pipeline",       icon: Kanban },

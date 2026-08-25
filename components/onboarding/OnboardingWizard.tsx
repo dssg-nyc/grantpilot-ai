@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, CheckCircle2, Loader2, AlertCircle, Landmark } from "lucide-react";
 import { OrgProfile } from "@/types/profile";
+import WebsiteImport from "@/components/onboarding/WebsiteImport";
 import OrgInfoStep from "@/components/onboarding/steps/OrgInfoStep";
 import MissionStep from "@/components/onboarding/steps/MissionStep";
 import FocusAreasStep from "@/components/onboarding/steps/FocusAreasStep";
@@ -131,7 +132,13 @@ export default function OnboardingWizard({ initialData }: { initialData?: Partia
   const progressPct = Math.round(((currentStep + 1) / STEPS.length) * 100);
 
   const stepComponents = [
-    <OrgInfoStep       key="org"     data={data} onChange={handleChange} />,
+    <div key="org" className="space-y-5">
+      {/* Only offered on a fresh signup. When editing an existing profile,
+          re-scraping the website would silently overwrite corrections the
+          user has already made by hand. */}
+      {!isEditing && <WebsiteImport onApply={handleChange} />}
+      <OrgInfoStep data={data} onChange={handleChange} />
+    </div>,
     <MissionStep       key="mission" data={data} onChange={handleChange} />,
     <FocusAreasStep    key="focus"   data={data} onChange={handleChange} />,
     <OperationalStep   key="ops"     data={data} onChange={handleChange} />,

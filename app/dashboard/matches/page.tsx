@@ -426,7 +426,10 @@ export default function MatchesPage() {
   const { data, isLoading, error } = useMatches();
   const { data: pipeline } = usePipeline();
   const { data: profile } = useProfile();
-  const matches = (data?.data ?? []) as MatchItem[];
+  // Same guard as RecentMatches: a match whose opportunity is hidden by RLS
+  // (expired grant) comes back with opportunity: null, and MatchCard reads
+  // opp.funder_type unguarded.
+  const matches = ((data?.data ?? []) as MatchItem[]).filter((m) => !!m.opportunity);
   const stats = data?.stats;
   const planLimited = data?.plan_limited === true;
   const totalMatches = data?.total_matches;

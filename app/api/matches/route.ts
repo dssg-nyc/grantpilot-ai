@@ -41,9 +41,17 @@ export async function GET(request: Request) {
   const planLimits = getPlanLimits(orgRow?.plan);
   const proPlan = isPro(orgRow?.plan);
 
+  // !inner, not a plain embed. `opportunities_public_read` RLS only exposes
+  // status='active' rows, so a match whose grant has since expired joins to
+  // NULL — and every consumer of this route reads opportunity.funder_type
+  // unguarded, which crashed the whole dashboard with "Cannot read properties
+  // of null". An inner join drops those rows server-side, which is also the
+  // correct product behaviour: never show someone a match to a grant they
+  // cannot open. Matches themselves are left in place, so the row comes back
+  // on its own if the opportunity is ever reactivated.
   let query = supabase
     .from("matches")
-    .select("*, opportunity:opportunities(*)", { count: "exact" })
+    .select("*, opportunity:opportunities!inner(*)", { count: "exact" })
     .eq("org_id", userData.org_id)
     .gte("match_score", minScore)
     .order("match_score", { ascending: false });
