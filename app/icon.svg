@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Same mark as the nav logo: lucide "landmark" on the DSSG blue-700 → blue-900 gradient. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00478f"/>
+      <stop offset="1" stop-color="#002d72"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="url(#g)"/>
+  <g transform="translate(5 5) scale(0.9167)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 18v-7"/>
+    <path d="M11.12 2.198a2 2 0 0 1 1.76.006l7.866 3.847c.476.233.31.949-.22.949H3.474c-.53 0-.695-.716-.22-.949z"/>
+    <path d="M14 18v-7"/>
+    <path d="M18 18v-7"/>
+    <path d="M3 22h18"/>
+    <path d="M6 18v-7"/>
+  </g>
+</svg>
