@@ -1,0 +1,31 @@
+# GrantPilot — TLS termination + routing (single domain).
+#
+#   https://APP_DOMAIN/auth/v1/*  -> kong:8000 -> GoTrue
+#   https://APP_DOMAIN/rest/v1/*  -> kong:8000 -> PostgREST
+#   everything else               -> app:3000 (Next.js)
+#
+# Caddy obtains/renews Let's Encrypt certificates automatically once DNS for
+# APP_DOMAIN points at this box and ports 80/443 are open. Caddy overwrites
+# X-Forwarded-For with the real client IP (no trusted_proxies configured), which
+# the app's in-memory rate limiter keys on.
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	@supabase path /auth/v1/* /rest/v1/*
+	handle @supabase {
+		reverse_proxy kong:8000
+	}
+
+	handle {
+		reverse_proxy app:3000
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+}

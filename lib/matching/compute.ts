@@ -1,6 +1,7 @@
 import { vectorSimilaritySearch } from "@/lib/matching/vector-search";
 import { computeScoreBreakdown } from "@/lib/matching/score-calculator";
 import { batchAnalyzeMatches } from "@/lib/anthropic/match-analyzer";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { OrgProfile } from "@/types/profile";
 import type { Opportunity } from "@/types/opportunity";
 
@@ -19,7 +20,9 @@ export interface MatchRow {
   recommended_action: string | null;
   analysis_confidence: string | null;
   ai_analysis_at: string | null;
-  status: string;
+  // No `status`: it's user-owned (new/saved/applied/dismissed). Leaving it out
+  // of the upsert means inserts get the column default 'new' and recomputes
+  // never reset what the user chose.
 }
 
 /**
@@ -27,7 +30,7 @@ export interface MatchRow {
  * vector search -> per-dimension composite breakdown -> filter -> deep AI
  * analysis on the top N -> rows ready to upsert into `matches`.
  *
- * Used by the Inngest compute/recompute jobs and the manual compute API so
+ * Used by the pg-boss compute/recompute jobs and the manual compute API so
  * per-dimension scores, analysis confidence, and the success-probability
  * fallback behave identically everywhere.
  */
@@ -76,7 +79,33 @@ export async function computeMatchRowsForOrg(
       recommended_action: analysis?.recommended_action ?? null,
       analysis_confidence: analysis?.analysis_confidence ?? null,
       ai_analysis_at: analysis ? now : null,
-      status: "new",
     };
   });
+}
+
+/**
+ * Persist a full recompute for one org: upsert `rows` (the org's complete
+ * match set), then drop older matches that no longer qualify — e.g. scored
+ * on a previous embedding model — but only ones the user never acted on.
+ */
+export async function saveOrgMatches(orgId: string, rows: MatchRow[]): Promise<{ saved: number; pruned: number }> {
+  if (rows.length === 0) return { saved: 0, pruned: 0 };
+
+  const { error } = await supabaseAdmin
+    .from("matches")
+    .upsert(rows, { onConflict: "org_id,opportunity_id", ignoreDuplicates: false });
+  if (error) throw new Error(`Match upsert failed for org ${orgId}: ${error.message}`);
+
+  const keep = rows.map((m) => m.opportunity_id).join(",");
+  const { data: pruned, error: pruneError } = await supabaseAdmin
+    .from("matches")
+    .delete()
+    .eq("org_id", orgId)
+    .eq("status", "new")
+    .not("opportunity_id", "in", `(${keep})`)
+    .select("id");
+  // The new matches are already saved; a failed cleanup only leaves stale rows.
+  if (pruneError) console.error(`[saveOrgMatches] prune failed for org ${orgId}:`, pruneError.message);
+
+  return { saved: rows.length, pruned: pruned?.length ?? 0 };
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { embedText } from "@/lib/voyage/embeddings";
+import { embedText } from "@/lib/embeddings";
 import { fetchAllRssFeeds } from "@/lib/data-sources/rss-monitor";
 import Anthropic from "@anthropic-ai/sdk";
 

@@ -4,11 +4,8 @@ import { useEffect } from "react";
 
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    // Lazy-import so the heavy Sentry bundle never enters the client error
-    // boundary's static module graph (which breaks under Turbopack dev).
-    import("@sentry/nextjs")
-      .then((Sentry) => Sentry.captureException(error))
-      .catch(() => {});
+    // Surfaces in the browser console; server-side errors land in the app logs.
+    console.error(error);
   }, [error]);
 
   return (

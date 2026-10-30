@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { computeMatchRowsForOrg } from "@/lib/matching/compute";
+import { computeMatchRowsForOrg, saveOrgMatches } from "@/lib/matching/compute";
 import type { OrgProfile } from "@/types/profile";
 import { rateLimitGuard, strictRateLimiter } from "@/lib/redis/rate-limiter";
 
@@ -11,11 +11,11 @@ async function computeMatchesForOrg(org: Record<string, unknown>) {
   if (matchRows.length === 0)
     return NextResponse.json({ matched: 0, message: "No similar grants found — grants may need embeddings" });
 
-  const { error } = await supabaseAdmin
-    .from("matches")
-    .upsert(matchRows, { onConflict: "org_id,opportunity_id" });
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    await saveOrgMatches(org.id as string, matchRows);
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
+  }
 
   return NextResponse.json({ matched: matchRows.length, message: "Matches computed successfully" });
 }

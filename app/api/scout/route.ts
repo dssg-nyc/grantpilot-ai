@@ -7,9 +7,8 @@ import type { OrgProfile } from "@/types/profile";
 
 /**
  * A real research run makes ~10 web searches and ~10 page fetches at high
- * effort, which routinely takes several minutes. Vercel Hobby caps functions
- * at 60s regardless of this value — on Hobby, expect the stream to be cut
- * short. That is survivable by design: every finding is persisted the instant
+ * effort, which routinely takes several minutes. If a proxy or client cuts
+ * the stream short, that is survivable by design: every finding is persisted the instant
  * the agent records it, and the client refetches the run from the database
  * when the stream ends, so a truncated run still shows everything found.
  */

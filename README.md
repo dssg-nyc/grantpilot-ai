@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GrantPilot AI
 
-## Getting Started
+Grant discovery and matching for nonprofits: ingests federal (grants.gov, SAM.gov), foundation and RSS opportunities, embeds them, and matches them against each organization's profile; plus a pipeline, AI drafting and an assistant.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router, `output: "standalone"`) — web app + API routes
+- **Supabase, self-hosted** — Postgres 17 + pgvector, GoTrue auth, PostgREST, Kong (`@supabase/ssr` / `supabase-js` in the app)
+- **pg-boss** — job queue + crons in Postgres; consumed by a separate worker (`worker/index.ts`)
+- **Ollama `bge-m3`** — local 1024-dim embeddings
+- **fetch + cheerio + turndown** — web scraping
+- **Anthropic** (AI), **Resend** (email), **Stripe** (billing)
+- Rate limiting is in-process (`lib/redis/rate-limiter.ts`, single app instance)
+
+## Local development
+
+Prerequisites: Node 22, Docker (for Postgres/Supabase), [Ollama](https://ollama.com) with `ollama pull bge-m3`.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local          # fill in Supabase URL/keys, DATABASE_URL, API keys
+# apply supabase/migrations/*.sql to your database, e.g.
+DATABASE_URL=postgres://postgres:...@127.0.0.1:5432/postgres deploy/migrate.sh
+
+npm run dev                         # web app
+npx tsx --env-file=.env.local worker/index.ts   # background worker (separate terminal)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+For a local Supabase you can either run `supabase start` (Supabase CLI) or the production compose stack in `deploy/`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Purpose |
+|---|---|
+| `npm test` | Vitest unit + integration tests |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run test:e2e` | Playwright |
+| `npx tsx scripts/sync-all.ts` | ingest grants.gov + foundations, re-match all orgs |
+| `npx tsx scripts/reembed-all.ts` | regenerate every embedding with the current model |
 
-## Learn More
+## Deployment
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Single VPS with Docker Compose (Caddy TLS, self-hosted Supabase, Ollama, app, worker). See **[DEPLOY.md](DEPLOY.md)**.

@@ -4,7 +4,7 @@ import { rateLimitGuard, strictRateLimiter } from "@/lib/redis/rate-limiter";
 import { importOpportunityFromUrl } from "@/lib/opportunities/import-from-url";
 import type { Opportunity } from "@/types/opportunity";
 
-/** Firecrawl scrape + Claude extraction + embedding — slow, but bounded. */
+/** Page fetch + Claude extraction + embedding — slow, but bounded. */
 export const maxDuration = 120;
 
 /**

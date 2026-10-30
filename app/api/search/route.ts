@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { embedText } from "@/lib/voyage/embeddings";
+import { embedText, calibrateSimilarity, rawSimilarityThreshold } from "@/lib/embeddings";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { rateLimitGuard, strictRateLimiter } from "@/lib/redis/rate-limiter";
 
@@ -42,7 +42,10 @@ export async function GET(request: Request) {
     if (embedding.length > 0) {
       const { data: vectorResults } = await supabase.rpc("match_opportunities", {
         query_embedding: embedding,
-        match_threshold: 0.5,
+        // Short typed queries score lower against grant text than org profiles
+        // do, so this sits below the old 0.5: on bge-m3, clear hits measured
+        // ≥0.61 raw and unrelated grants ≤0.53 (0.42 calibrated ≈ 0.55 raw).
+        match_threshold: rawSimilarityThreshold(0.42),
         match_count: limit - results.length,
       });
 
@@ -53,7 +56,7 @@ export async function GET(request: Request) {
             type: "opportunity",
             id: row.id,
             title: row.title,
-            score: row.similarity,
+            score: calibrateSimilarity(row.similarity),
             highlight: row.ai_summary ?? row.funder_name,
           });
         }

@@ -1,6 +1,6 @@
 /**
  * End-to-end pipeline proof: fetch -> store -> match -> show.
- * Drives the REAL lib modules (same code the Inngest functions use).
+ * Drives the REAL lib modules (same code the background job handlers in lib/jobs/handlers use).
  * Run: npx tsx scripts/e2e-pipeline.ts
  */
 import { readFileSync } from "node:fs";
@@ -24,7 +24,7 @@ const parseElig = (raw?: string[]) =>
 
 async function main() {
   const { fetchGrantsGovOpportunities, fetchGrantDetails } = await import("@/lib/data-sources/grants-gov");
-  const { embedTexts } = await import("@/lib/voyage/embeddings");
+  const { embedTexts } = await import("@/lib/embeddings");
   const { supabaseAdmin } = await import("@/lib/supabase/admin");
   const { computeMatchRowsForOrg } = await import("@/lib/matching/compute");
 
@@ -35,9 +35,9 @@ async function main() {
   if (!list.length) throw new Error("FETCH FAILED: no opportunities returned");
 
   // ================= STAGE 2: ENRICH + EMBED + STORE =================
-  log(`\n=== STAGE 2: ENRICH (details) + EMBED (voyage) + STORE (supabase) ===`);
+  log(`\n=== STAGE 2: ENRICH (details) + EMBED (ollama) + STORE (supabase) ===`);
 
-  // 2a. Pull details for every opp (grants.gov, not rate-limited like Voyage).
+  // 2a. Pull details for every opp (grants.gov, no embedding API limits involved).
   const enriched = [];
   for (const raw of list) {
     const details = await fetchGrantDetails(String(raw.id));
@@ -47,7 +47,7 @@ async function main() {
     enriched.push({ raw, details, description, agency, elig });
   }
 
-  // 2b. Embed ALL texts (opps + org mission) in ONE batched Voyage request.
+  // 2b. Embed ALL texts (opps + org mission) in one batched Ollama call.
   const mission = "We are a 501(c)(3) nonprofit improving rural and community health outcomes by building integrated health networks, expanding access to primary care, and supporting underserved populations across the United States.";
   const embedInputs = enriched.map((e) =>
     [e.raw.title, e.description, `Funder: ${e.agency}`, `Eligibility: ${e.elig.join(", ")}`].join("\n"),

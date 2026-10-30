@@ -1,5 +1,5 @@
 /**
- * Best-effort live ingestion of foundation/corporate grants via Firecrawl + AI extraction.
+ * Best-effort live ingestion of foundation/corporate grants via the fetch scraper + AI extraction.
  * Scrapes FOUNDATION_TARGETS, extracts structured grants, embeds (batched), stores,
  * then re-matches the seeded org so they appear in the dashboard.
  * Run: npx tsx scripts/ingest-foundations.ts
@@ -13,8 +13,8 @@ for (const line of readFileSync(resolve(process.cwd(), ".env.local"), "utf8").sp
 const log = (...a: unknown[]) => console.log(...a);
 
 async function main() {
-  const { FOUNDATION_TARGETS, scrapeFoundation } = await import("@/lib/firecrawl/scrapers/foundation-scraper");
-  const { embedTexts } = await import("@/lib/voyage/embeddings");
+  const { FOUNDATION_TARGETS, scrapeFoundation } = await import("@/lib/scraper/foundation-scraper");
+  const { embedTexts } = await import("@/lib/embeddings");
   const { supabaseAdmin } = await import("@/lib/supabase/admin");
   const { vectorSimilaritySearch } = await import("@/lib/matching/vector-search");
   const { computeCompositeScore } = await import("@/lib/matching/score-calculator");

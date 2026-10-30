@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { embedText } from "@/lib/voyage/embeddings";
-import { scrapeAllFoundations } from "@/lib/firecrawl/scrapers/foundation-scraper";
+import { embedText } from "@/lib/embeddings";
+import { scrapeAllFoundations } from "@/lib/scraper/foundation-scraper";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { anthropic } from "@/lib/anthropic/client";
-import { crawlOrgSite } from "@/lib/firecrawl/client";
+import { crawlOrgSite } from "@/lib/scraper/client";
 import { WEBSITE_PROFILE_SCHEMA, websiteProfilePrompt } from "@/lib/anthropic/prompts/website-profile-extraction";
 import { rateLimitGuard, strictRateLimiter } from "@/lib/redis/rate-limiter";
 import { FOCUS_AREA_TAXONOMY } from "@/lib/utils/taxonomy";
 import type { OrgProfile, OrgType } from "@/types/profile";
 
-/** Several Firecrawl scrapes plus one extraction call. */
+/** A handful of page fetches plus one extraction call. */
 export const maxDuration = 120;
 
 const FOCUS_SET = new Set<string>(FOCUS_AREA_TAXONOMY);

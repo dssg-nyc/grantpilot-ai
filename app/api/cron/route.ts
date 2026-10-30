@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { fetchGrantsGovOpportunities, fetchGrantDetails } from "@/lib/data-sources/grants-gov";
-import { embedText } from "@/lib/voyage/embeddings";
+import { embedText } from "@/lib/embeddings";
 import { rateLimitGuard, strictRateLimiter } from "@/lib/redis/rate-limiter";
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -72,7 +72,7 @@ export async function GET(request: Request) {
         const details = await fetchGrantDetails(id);
         const description = details.description ?? details.synopsis ?? "";
 
-        // Check if this grant already has an embedding so we can skip the Voyage call
+        // Check if this grant already has an embedding so we can skip the embedding call
         const { data: existingCheck } = await supabaseAdmin
           .from("opportunities").select("id,embedding").eq("source_id", id).eq("source", "grants_gov").single();
         const hasEmbedding = !!(existingCheck?.embedding);
@@ -127,7 +127,7 @@ export async function GET(request: Request) {
           await supabaseAdmin.from("opportunities").insert(opp);
           totalNew++;
         }
-        // Pace requests to avoid Voyage AI 429s
+        // Light pacing between grants.gov detail fetches.
         await sleep(300);
       } catch (e) {
         errors.push(`process ${raw.id}: ${e}`);

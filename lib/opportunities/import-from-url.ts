@@ -1,10 +1,10 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { crawlGrantPage } from "@/lib/firecrawl/client";
-import { extractOpportunitiesFromMarkdown } from "@/lib/firecrawl/scrapers/grant-page-parser";
-import { embedText } from "@/lib/voyage/embeddings";
+import { crawlGrantPage } from "@/lib/scraper/client";
+import { extractOpportunitiesFromMarkdown } from "@/lib/scraper/grant-page-parser";
+import { embedText } from "@/lib/embeddings";
 import { computeMatchRowsForOrg } from "@/lib/matching/compute";
 import { getPlanLimits } from "@/lib/billing/plans";
-import { inngest } from "@/inngest/client";
+import { enqueue } from "@/lib/jobs/queue";
 import type { Opportunity } from "@/types/opportunity";
 import type { OrgProfile } from "@/types/profile";
 import type { PipelineItem } from "@/types/pipeline";
@@ -47,7 +47,15 @@ export async function importOpportunityFromUrl(params: {
     return { error: "url must start with http:// or https://", status: 400 };
   }
 
-  const markdown = await crawlGrantPage(url);
+  // The scraper throws on blocked addresses, HTTP errors and non-HTML (e.g.
+  // PDF) pages — all "we couldn't read it", not server faults.
+  let markdown: string;
+  try {
+    markdown = await crawlGrantPage(url);
+  } catch (e) {
+    console.warn(`[import-from-url] fetch failed for ${url}:`, e instanceof Error ? e.message : e);
+    return { error: "Couldn't read that page (it may block automated access or not be an HTML page).", status: 422 };
+  }
   if (!markdown.trim()) {
     return { error: "Couldn't extract grant details from that page.", status: 422 };
   }
@@ -145,9 +153,8 @@ export async function importOpportunityFromUrl(params: {
   }
 
   // Fire-and-forget: surface the new grant to the async matcher for every org.
-  inngest
-    .send({ name: "grants/new-opportunities", data: { count: 1, source: "user_submitted" } })
-    .catch((e) => console.error("importOpportunityFromUrl: inngest event failed", e));
+  enqueue("grants/new-opportunities", { count: 1, source: "user_submitted" })
+    .catch((e) => console.error("importOpportunityFromUrl: enqueue failed", e));
 
   // Best-effort synchronous match compute for the importing org.
   try {

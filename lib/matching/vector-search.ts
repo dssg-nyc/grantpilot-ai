@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Opportunity } from "@/types/opportunity";
+import { calibrateSimilarity, rawSimilarityThreshold } from "@/lib/embeddings";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,7 +22,7 @@ export async function vectorSimilaritySearch(
   // We convert to similarity: 1 - (distance/2) gives 0–1 range
   const { data, error } = await supabaseAdmin.rpc("match_opportunities", {
     query_embedding: embedding,
-    match_threshold: 0.3,
+    match_threshold: rawSimilarityThreshold(0.3),
     match_count: limit,
   });
 
@@ -33,7 +34,7 @@ export async function vectorSimilaritySearch(
   return (data ?? []).map(
     (row: { similarity: number } & Record<string, unknown>) => ({
       opportunity: row as unknown as Opportunity,
-      similarity: row.similarity as number,
+      similarity: calibrateSimilarity(row.similarity as number),
     }),
   );
 }

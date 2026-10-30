@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { embedText } from "@/lib/voyage/embeddings";
+import { embedText, rawSimilarityThreshold } from "@/lib/embeddings";
 import { getPlanLimits } from "@/lib/billing/plans";
 import { GRANT_SECTION_KEYS, type GrantSectionKey } from "@/lib/utils/grant-sections";
 
@@ -47,7 +47,7 @@ export async function searchOpportunities(ctx: ToolContext, input: Record<string
     if (embedding.length > 0) {
       const { data: vectorResults } = await ctx.supabase.rpc("match_opportunities", {
         query_embedding: embedding,
-        match_threshold: 0.4,
+        match_threshold: rawSimilarityThreshold(0.4),
         match_count: limit,
       });
       return { results: vectorResults ?? [], note: "Matched by topic similarity, not exact keyword." };

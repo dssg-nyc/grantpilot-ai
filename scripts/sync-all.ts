@@ -1,14 +1,16 @@
 /**
  * Unified ingestion: pull EVERY source in one run, then recompute matches once.
  *   - Federal:            grants.gov (dated, daily-fresh)
- *   - Foundation/Corporate: Firecrawl scrape of FOUNDATION_TARGETS
+ *   - Foundation/Corporate: scrape of FOUNDATION_TARGETS
  * This is the single "pull all kinds of grants" entrypoint for local/manual runs.
- * In deployment the two Inngest crons cover the same sources on their own cadence.
+ * In deployment the pg-boss worker crons (worker/index.ts) cover the same sources on their own cadence.
  * Run: npx tsx scripts/sync-all.ts
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-for (const line of readFileSync(resolve(process.cwd(), ".env.local"), "utf8").split("\n")) {
+// .env.local is optional — in the worker container env comes from compose.
+const envFile = resolve(process.cwd(), ".env.local");
+for (const line of (existsSync(envFile) ? readFileSync(envFile, "utf8") : "").split("\n")) {
   const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
 }
@@ -23,8 +25,8 @@ const toISO = (d?: string | null) => { if (!d) return null; const t = new Date(d
 
 async function main() {
   const { fetchGrantsGovOpportunities, fetchGrantDetails } = await import("@/lib/data-sources/grants-gov");
-  const { scrapeAllFoundations } = await import("@/lib/firecrawl/scrapers/foundation-scraper");
-  const { embedTexts } = await import("@/lib/voyage/embeddings");
+  const { scrapeAllFoundations } = await import("@/lib/scraper/foundation-scraper");
+  const { embedTexts } = await import("@/lib/embeddings");
   const { supabaseAdmin } = await import("@/lib/supabase/admin");
   const { computeMatchRowsForOrg } = await import("@/lib/matching/compute");
 
@@ -63,8 +65,8 @@ async function main() {
   }
   log(`  federal stored/updated: ${fedStored}`);
 
-  // ============ SOURCE 2 & 3: FOUNDATION + CORPORATE (Firecrawl) ============
-  log(`\n=== [2/3] FOUNDATION + CORPORATE — Firecrawl scrape ===`);
+  // ============ SOURCE 2 & 3: FOUNDATION + CORPORATE (scraper) ============
+  log(`\n=== [2/3] FOUNDATION + CORPORATE — scrape ===`);
   const grants = await scrapeAllFoundations();
   log(`  scraped/extracted: ${grants.length}`);
   let scrapedStored = 0;

@@ -151,7 +151,7 @@ export async function POST(request: Request) {
   const orgName = org?.legal_name ?? "an organization";
 
   // Resend is already configured elsewhere (see
-  // inngest/functions/send-digest-emails.ts) — reuse the same render+send
+  // lib/jobs/handlers/send-digest-emails.ts) — reuse the same render+send
   // pattern. There's no dedicated React Email template for invites yet
   // (emails/ only has WelcomeEmail, AlertEmail, DigestEmail, and adding a new
   // template file is outside this workstream's file scope), so this sends

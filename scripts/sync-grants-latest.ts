@@ -1,7 +1,7 @@
 /**
  * Pull the most-recently-posted grants.gov opportunities (sorted by openDate),
  * store them with their real posted_date, then recompute matches for every org.
- * Use locally to refresh data (the 4h Inngest cron only runs in deployment).
+ * Use locally to refresh data (the 4h worker cron only runs where worker/index.ts is running).
  * Run: npx tsx scripts/sync-grants-latest.ts
  */
 import { readFileSync } from "node:fs";
@@ -21,7 +21,7 @@ const toISO = (d?: string) => { if (!d) return null; const t = new Date(d); retu
 
 async function main() {
   const { fetchGrantsGovOpportunities, fetchGrantDetails } = await import("@/lib/data-sources/grants-gov");
-  const { embedTexts } = await import("@/lib/voyage/embeddings");
+  const { embedTexts } = await import("@/lib/embeddings");
   const { supabaseAdmin } = await import("@/lib/supabase/admin");
   const { vectorSimilaritySearch } = await import("@/lib/matching/vector-search");
   const { computeCompositeScore } = await import("@/lib/matching/score-calculator");

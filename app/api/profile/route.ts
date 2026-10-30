@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { inngest } from "@/inngest/client";
-import { embedText } from "@/lib/voyage/embeddings";
+import { enqueue } from "@/lib/jobs/queue";
+import { buildOrgEmbeddingText, embedText } from "@/lib/embeddings";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { profileSchema, profileUpdateSchema } from "@/lib/utils/validators";
 
@@ -34,18 +34,8 @@ function computeProfileCompleteness(org: Record<string, unknown>): number {
   return Math.round((filled.length / fields.length) * 100);
 }
 
-async function buildEmbeddingText(data: Record<string, unknown>) {
-  return [
-    data.mission_statement,
-    `Focus areas: ${(data.primary_focus_areas as string[] ?? []).join(", ")}`,
-    `Beneficiaries: ${(data.target_beneficiaries as string[] ?? []).join(", ")}`,
-    `Programs: ${(data.programs as Array<{ name: string; description: string }> ?? []).map((p) => `${p.name}: ${p.description}`).join(". ")}`,
-    `Budget: ${data.annual_budget_range ?? ""}`,
-    `Service area: ${data.geographic_service_area ?? "national"}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
+// Same text the re-embed script/cron use, so profile vectors never drift.
+const buildEmbeddingText = async (data: Record<string, unknown>) => buildOrgEmbeddingText(data);
 
 export async function GET() {
   const supabase = await createSupabaseServerClient();
@@ -237,7 +227,13 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await inngest.send({ name: "org/profile-updated", data: { org_id: userData.org_id } });
+  // The profile is already saved — a queue hiccup shouldn't fail the request;
+  // matches just refresh on the next profile save / manual refresh instead.
+  try {
+    await enqueue("org/profile-updated", { org_id: userData.org_id });
+  } catch (e) {
+    console.error("profile: failed to enqueue match recompute", e);
+  }
 
   return NextResponse.json({ organization: org });
 }

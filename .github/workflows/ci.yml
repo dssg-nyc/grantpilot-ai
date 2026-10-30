@@ -17,12 +17,6 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
       SUPABASE_JWT_SECRET: placeholder-jwt-secret
       ANTHROPIC_API_KEY: sk-ant-placeholder
-      VOYAGE_API_KEY: pa-placeholder
-      FIRECRAWL_API_KEY: fc-placeholder
-      INNGEST_EVENT_KEY: placeholder-event-key
-      INNGEST_SIGNING_KEY: placeholder-signing-key
-      UPSTASH_REDIS_REST_URL: https://placeholder.upstash.io
-      UPSTASH_REDIS_REST_TOKEN: placeholder-token
       RESEND_API_KEY: re_placeholder
       EMAIL_FROM: test@example.com
       SAM_GOV_API_KEY: placeholder-sam-key
@@ -36,7 +30,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
