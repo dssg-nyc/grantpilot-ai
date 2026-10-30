@@ -31,13 +31,14 @@ export function rawSimilarityThreshold(calibrated: number): number {
 const ollamaUrl = () => (process.env.OLLAMA_URL || "http://localhost:11434").replace(/\/+$/, "");
 const embeddingModel = () => process.env.EMBEDDING_MODEL || "bge-m3";
 
-// bge-m3 accepts up to 8192 tokens. 32 inputs/request keeps each call to a
-// few seconds on CPU; ~16K chars (~4K tokens) per input covers any grant
-// description we store while bounding memory/latency. Ollama also truncates
-// server-side (truncate: true) as a backstop.
+// Embedding cost on CPU grows with input length: at ~16K chars a 2-vCPU VPS
+// managed ~0.4 grants/s. The title, funder and opening of the description
+// carry nearly all the matching signal, so inputs are cut to 2K chars
+// (~500 tokens). Ollama also truncates server-side (truncate: true) to
+// NUM_CTX as a backstop.
 const MAX_INPUTS_PER_REQUEST = 32;
-const MAX_CHARS_PER_INPUT = 16000;
-const NUM_CTX = 8192;
+const MAX_CHARS_PER_INPUT = 2000;
+const NUM_CTX = 2048;
 const REQUEST_TIMEOUT_MS = 120_000;
 
 /** Embed one chunk (<= MAX_INPUTS_PER_REQUEST) in a single request, with backoff on network errors/5xx. */

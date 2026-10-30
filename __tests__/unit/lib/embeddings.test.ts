@@ -74,7 +74,7 @@ describe("embeddings (Ollama)", () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ embeddings: [vec()] }));
     await embedText("a".repeat(100_000));
     const { input } = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(input[0].length).toBeLessThanOrEqual(16000);
+    expect(input[0].length).toBeLessThanOrEqual(2000);
   });
 
   it("retries on 5xx and network errors, then succeeds", async () => {
