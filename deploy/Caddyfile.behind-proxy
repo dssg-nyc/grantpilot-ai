@@ -1,0 +1,35 @@
+# GrantPilot routing when another reverse proxy (e.g. an existing Traefik)
+# already owns ports 80/443 and terminates TLS. Used by
+# docker-compose.traefik.yml; see DEPLOY.md "Behind an existing Traefik".
+#
+#   /auth/v1/*, /rest/v1/*  -> kong:8000 -> GoTrue / PostgREST
+#   everything else         -> app:3000 (Next.js)
+#
+# Plain HTTP only. X-Forwarded-For is trusted from private ranges (the outer
+# proxy on the Docker network), so its first entry stays the real client IP
+# the app's rate limiter keys on. The outer proxy must overwrite, not append
+# to, client-supplied X-Forwarded-For (Traefik does by default).
+{
+	auto_https off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:80 {
+	encode zstd gzip
+
+	@supabase path /auth/v1/* /rest/v1/*
+	handle @supabase {
+		reverse_proxy kong:8000
+	}
+
+	handle {
+		reverse_proxy app:3000
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+}

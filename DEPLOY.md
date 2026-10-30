@@ -67,6 +67,19 @@ docker compose logs -f app worker
 
 First boot order is handled by compose: `db` → `migrate` (applies all migrations) → `auth`/`rest` → `kong` → `app`; `ollama` → `ollama-pull` (downloads `bge-m3`, ~1.2 GB, once) → `worker`.
 
+### Behind an existing Traefik (shared host)
+
+If the box already runs Traefik on 80/443 (e.g. alongside n8n), don't fight it for the ports: `deploy/docker-compose.traefik.yml` drops Caddy's published ports, joins Traefik's Docker network and labels Caddy so Traefik routes `APP_DOMAIN` to it and issues the certificate. Caddy keeps doing the internal `/auth/v1`, `/rest/v1` → Kong split over plain HTTP (`Caddyfile.behind-proxy`).
+
+```bash
+# deploy/.env additionally:
+TRAEFIK_NETWORK=root_default          # docker inspect <traefik> -f '{{json .NetworkSettings.Networks}}'
+TRAEFIK_CERTRESOLVER=mytlschallenge   # Traefik's --certificatesresolvers.<name>
+
+alias dc='docker compose -f docker-compose.yml -f docker-compose.traefik.yml'
+dc up -d --build                      # use `dc` instead of `docker compose` everywhere below
+```
+
 ### Environment (`deploy/.env`)
 
 | Variable | Notes |

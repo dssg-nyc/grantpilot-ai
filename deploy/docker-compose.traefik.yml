@@ -1,0 +1,38 @@
+# Overlay for a host where an existing Traefik already owns 80/443 (e.g. a VPS
+# that also runs n8n). Caddy publishes nothing; Traefik routes APP_DOMAIN to it
+# over Traefik's Docker network and handles TLS with its own cert resolver.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d --build
+#
+# Needs in deploy/.env: TRAEFIK_NETWORK (the network Traefik's container is on,
+# `docker inspect <traefik> -f '{{json .NetworkSettings.Networks}}'`) and
+# TRAEFIK_CERTRESOLVER (its --certificatesresolvers.<name>).
+#
+# app/worker reach Supabase via the public URL, which now resolves to the host
+# and goes through Traefik (no network alias: Caddy here speaks HTTP only).
+
+services:
+  caddy:
+    ports: !reset []
+    networks: !override
+      default: {}
+      proxy: {}
+    environment: !override
+      APP_DOMAIN: ${APP_DOMAIN}
+    volumes: !override
+      - ./Caddyfile.behind-proxy:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ${TRAEFIK_NETWORK}
+      traefik.http.routers.grantpilot.rule: Host(`${APP_DOMAIN}`)
+      traefik.http.routers.grantpilot.entrypoints: websecure
+      traefik.http.routers.grantpilot.tls: "true"
+      traefik.http.routers.grantpilot.tls.certresolver: ${TRAEFIK_CERTRESOLVER:?set TRAEFIK_CERTRESOLVER in deploy/.env}
+      traefik.http.services.grantpilot.loadbalancer.server.port: "80"
+
+networks:
+  proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK:?set TRAEFIK_NETWORK in deploy/.env}
